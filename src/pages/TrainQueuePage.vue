@@ -6,6 +6,15 @@ import TripJournalTable from '@/organisms/TripJournalTable.vue'
 import VsLeadersR3Table from '@/organisms/VsLeadersR3Table.vue'
 import TrainQueueTemplate from '@/templates/TrainQueueTemplate.vue'
 import { mockCurrentDriver, mockR3VsLeaders, mockR4R5Officers, mockTrips } from '@/data/mock'
+import { daysAgo } from '@/utils/format'
+
+const lastTripDate = mockTrips
+  .filter((trip) => trip.name === mockCurrentDriver)
+  .map((trip) => trip.date)
+  .sort()
+  .at(-1)
+
+const lastTripDaysAgo = lastTripDate ? daysAgo(lastTripDate) : null
 </script>
 
 <template>
@@ -14,7 +23,7 @@ import { mockCurrentDriver, mockR3VsLeaders, mockR4R5Officers, mockTrips } from 
       <TrainQueueHeader />
     </template>
     <template #driver>
-      <CurrentDriverCard :username="mockCurrentDriver" />
+      <CurrentDriverCard :username="mockCurrentDriver" :last-trip-days-ago="lastTripDaysAgo" />
     </template>
     <template #tables>
       <TripJournalTable :trips="mockTrips" />
