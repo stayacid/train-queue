@@ -19,11 +19,15 @@ const columns: TableColumn[] = [
   <section class="table-section">
     <SectionTitle title="Журнал поездок" />
     <PagedTable :columns="columns" :data="trips">
+      <!--
+        Element Plus вызывает эти слоты также с пустой row: {} для детекта
+        вложенных колонок — поэтому проверяем наличие данных строки.
+      -->
       <template #date="{ row }">
-        {{ formatDate(row.date) }}
+        {{ row.date !== undefined ? formatDate(row.date) : '' }}
       </template>
       <template #rank="{ row }">
-        <RankTag :rank="row.rank" />
+        <RankTag v-if="row.rank !== undefined" :rank="row.rank" />
       </template>
     </PagedTable>
   </section>

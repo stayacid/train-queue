@@ -1,24 +1,38 @@
 <script setup lang="ts">
 import RankTag from '@/atoms/RankTag.vue'
 import SectionTitle from '@/atoms/SectionTitle.vue'
+import LastTripCell from '@/molecules/LastTripCell.vue'
 import PagedTable from '@/molecules/PagedTable.vue'
 import type { TableColumn } from '@/types/table'
-import type { Officer } from '@/types/train'
+import type { OfficerWithLastTrip } from '@/types/train'
 
-defineProps<{ officers: Officer[] }>()
+defineProps<{ rows: OfficerWithLastTrip[] }>()
 
 const columns: TableColumn[] = [
   { prop: 'name', label: 'Имя' },
   { prop: 'rank', label: 'Ранг', width: 110 },
+  { prop: 'lastTripDate', label: 'Последняя поездка', width: 250 },
 ]
 </script>
 
 <template>
   <section class="table-section">
     <SectionTitle title="Список R4/R5" />
-    <PagedTable :columns="columns" :data="officers">
+    <PagedTable :columns="columns" :data="rows">
+      <!--
+        Element Plus вызывает этот слот дважды: один раз с настоящей строкой,
+        второй раз с пустой row: {} для детекта вложенных колонок.
+        Поэтому рендерим ячейку только когда данные строки присутствуют.
+      -->
       <template #rank="{ row }">
-        <RankTag :rank="row.rank" />
+        <RankTag v-if="row.rank !== undefined" :rank="row.rank" />
+      </template>
+      <template #lastTripDate="{ row }">
+        <LastTripCell
+          v-if="row.lastTripDate !== undefined || row.daysAgo !== undefined"
+          :last-trip-date="row.lastTripDate ?? null"
+          :days-ago="row.daysAgo ?? null"
+        />
       </template>
     </PagedTable>
   </section>

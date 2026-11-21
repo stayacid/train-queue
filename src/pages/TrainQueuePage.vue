@@ -9,7 +9,7 @@ import VsLeadersR3Table from '@/organisms/VsLeadersR3Table.vue'
 import TrainQueueTemplate from '@/templates/TrainQueueTemplate.vue'
 import { mockR3VsLeaders, mockR4R5Officers, mockTrips } from '@/data/mock'
 import { useTrainQueueStore } from '@/stores/trainQueue'
-import type { VsLeaderRow } from '@/types/train'
+import type { Officer, OfficerWithLastTrip } from '@/types/train'
 import { gameDaysAgo } from '@/utils/gameDay'
 
 const store = useTrainQueueStore()
@@ -20,18 +20,19 @@ store.load(mockTrips, mockR4R5Officers, mockR3VsLeaders)
 const username = computed(() => store.currentDriver?.name ?? null)
 const lastTripDaysAgo = computed(() => store.lastTripDaysAgo)
 
-/** Строки таблицы лидеров VS R3: офицер + дата последней поездки и дней назад */
-const vsLeaderRows = computed<VsLeaderRow[]>(() =>
-  store.r3VsLeaders.map((leader) => {
-    const last = store.lastTripOf(leader.name)
-    return {
-      name: leader.name,
-      rank: leader.rank,
-      lastTripDate: last?.date ?? null,
-      daysAgo: last === null ? null : gameDaysAgo(last.date),
-    }
-  }),
-)
+/** Строка таблицы офицеров: офицер + дата последней поездки и дней назад */
+function officerRow(officer: Officer): OfficerWithLastTrip {
+  const last = store.lastTripOf(officer.name)
+  return {
+    name: officer.name,
+    rank: officer.rank,
+    lastTripDate: last?.date ?? null,
+    daysAgo: last === null ? null : gameDaysAgo(last.date),
+  }
+}
+
+const r4r5Rows = computed<OfficerWithLastTrip[]>(() => store.r4r5Roster.map(officerRow))
+const vsLeaderRows = computed<OfficerWithLastTrip[]>(() => store.r3VsLeaders.map(officerRow))
 </script>
 
 <template>
@@ -49,7 +50,7 @@ const vsLeaderRows = computed<VsLeaderRow[]>(() =>
     </template>
     <template #tables>
       <TripJournalTable :trips="store.trips" />
-      <R4R5ListTable :officers="store.r4r5Roster" />
+      <R4R5ListTable :rows="r4r5Rows" />
       <VsLeadersR3Table :rows="vsLeaderRows" />
     </template>
   </TrainQueueTemplate>

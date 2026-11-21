@@ -41,6 +41,14 @@ const pagedData = computed(() => {
         :width="col.width"
         align="center"
       >
+        <!--
+          ВАЖНО: Element Plus вызывает этот default-слот дважды. Первый раз —
+          с настоящей строкой данных. Второй раз — с пустой row: {} (и
+          column: {}, $index: -1), чтобы «детектить» вложенные колонки.
+          Поэтому любой именованный слот :name="col.prop" обязан проверять
+          наличие полей row перед использованием (например, через v-if),
+          иначе на пустой строке упадёт с undefined.
+        -->
         <template #default="{ row }">
           <slot :name="col.prop" :row="row">
             {{ row[col.prop] }}

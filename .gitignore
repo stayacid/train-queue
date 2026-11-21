@@ -37,3 +37,6 @@ __screenshots__/
 
 # Vite
 *.timestamp-*-*.mjs
+
+# SSR smoke test (scripts/ssr-smoke.mjs)
+.tmp-ssr
