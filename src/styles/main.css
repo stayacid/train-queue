@@ -1,6 +1,7 @@
 :root {
   /* Системный sans-serif: San Francisco (macOS/iOS), Segoe UI (Windows) */
-  --el-font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --el-font-family:
+    system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
 }
 
 body {

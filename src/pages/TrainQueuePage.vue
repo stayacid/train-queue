@@ -1,20 +1,22 @@
 <script setup lang="ts">
+import { computed } from 'vue'
+
 import CurrentDriverCard from '@/molecules/CurrentDriverCard.vue'
 import R4R5ListTable from '@/organisms/R4R5ListTable.vue'
 import TrainQueueHeader from '@/organisms/TrainQueueHeader.vue'
 import TripJournalTable from '@/organisms/TripJournalTable.vue'
 import VsLeadersR3Table from '@/organisms/VsLeadersR3Table.vue'
 import TrainQueueTemplate from '@/templates/TrainQueueTemplate.vue'
-import { mockCurrentDriver, mockR3VsLeaders, mockR4R5Officers, mockTrips } from '@/data/mock'
-import { daysAgo } from '@/utils/format'
+import { mockR3VsLeaders, mockR4R5Officers, mockTrips } from '@/data/mock'
+import { useTrainQueueStore } from '@/stores/trainQueue'
 
-const lastTripDate = mockTrips
-  .filter((trip) => trip.name === mockCurrentDriver)
-  .map((trip) => trip.date)
-  .sort()
-  .at(-1)
+const store = useTrainQueueStore()
 
-const lastTripDaysAgo = lastTripDate ? daysAgo(lastTripDate) : null
+// Этап 2: данные из мока; этап 3: загрузка из Google Sheets
+store.load(mockTrips, mockR4R5Officers, mockR3VsLeaders)
+
+const username = computed(() => store.currentDriver?.name ?? null)
+const lastTripDaysAgo = computed(() => store.lastTripDaysAgo)
 </script>
 
 <template>
@@ -23,12 +25,17 @@ const lastTripDaysAgo = lastTripDate ? daysAgo(lastTripDate) : null
       <TrainQueueHeader />
     </template>
     <template #driver>
-      <CurrentDriverCard :username="mockCurrentDriver" :last-trip-days-ago="lastTripDaysAgo" />
+      <CurrentDriverCard
+        v-if="username !== null"
+        :username="username"
+        :last-trip-days-ago="lastTripDaysAgo"
+      />
+      <el-empty v-else description="Не удалось определить водителя" />
     </template>
     <template #tables>
-      <TripJournalTable :trips="mockTrips" />
-      <R4R5ListTable :officers="mockR4R5Officers" />
-      <VsLeadersR3Table :officers="mockR3VsLeaders" />
+      <TripJournalTable :trips="store.trips" />
+      <R4R5ListTable :officers="store.r4r5Roster" />
+      <VsLeadersR3Table :officers="store.r3VsLeaders" />
     </template>
   </TrainQueueTemplate>
 </template>

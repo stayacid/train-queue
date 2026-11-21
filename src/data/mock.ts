@@ -1,8 +1,5 @@
 import type { Officer, TripRecord } from '@/types/train'
 
-/** Текущий водитель поезда (мок до этапа 2) */
-export const mockCurrentDriver = 'Заря'
-
 /** Журнал поездок, новые записи сверху */
 export const mockTrips: TripRecord[] = [
   { name: 'Заря', date: '2026-11-20', rank: 'R4' },
@@ -22,7 +19,7 @@ export const mockTrips: TripRecord[] = [
   { name: 'Альфа', date: '2026-11-06', rank: 'R5' },
 ]
 
-/** Список офицеров R4/R5 */
+/** Список офицеров R4/R5 в порядке очереди */
 export const mockR4R5Officers: Officer[] = [
   { name: 'Заря', rank: 'R4' },
   { name: 'Вольф', rank: 'R5' },
@@ -32,9 +29,11 @@ export const mockR4R5Officers: Officer[] = [
   { name: 'Вихрь', rank: 'R5' },
   { name: 'Барс', rank: 'R4' },
   { name: 'Юки', rank: 'R5' },
+  { name: 'Рико', rank: 'R4' },
+  { name: 'Альфа', rank: 'R5' },
 ]
 
-/** Лидеры по VS среди офицеров R3 */
+/** Лидеры по VS среди офицеров R3, в порядке рейтинга игры (первый — #1) */
 export const mockR3VsLeaders: Officer[] = [
   { name: 'Гром', rank: 'R3' },
   { name: 'Мираж', rank: 'R3' },
