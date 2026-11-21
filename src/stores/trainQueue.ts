@@ -34,6 +34,10 @@ export const useTrainQueueStore = defineStore('trainQueue', () => {
     return gameDaysAgo(last.date)
   })
 
+  /** Последняя поездка офицера (журнал отсортирован, новые сверху); null, если нет */
+  const lastTripOf = (name: string): TripRecord | null =>
+    sortedTrips.value.find((trip) => trip.name === name) ?? null
+
   /** Загрузить данные в стор (этап 2 — мок, этап 3 — Google Sheets) */
   function load(journal: TripRecord[], roster: Officer[], leaders: Officer[]) {
     trips.value = journal
@@ -41,5 +45,14 @@ export const useTrainQueueStore = defineStore('trainQueue', () => {
     r3VsLeaders.value = leaders
   }
 
-  return { trips, r4r5Roster, r3VsLeaders, sortedTrips, currentDriver, lastTripDaysAgo, load }
+  return {
+    trips,
+    r4r5Roster,
+    r3VsLeaders,
+    sortedTrips,
+    currentDriver,
+    lastTripDaysAgo,
+    lastTripOf,
+    load,
+  }
 })
