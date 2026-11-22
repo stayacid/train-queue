@@ -7,7 +7,7 @@ import TrainQueueHeader from '@/organisms/TrainQueueHeader.vue'
 import TripJournalTable from '@/organisms/TripJournalTable.vue'
 import VsLeadersR3Table from '@/organisms/VsLeadersR3Table.vue'
 import TrainQueueTemplate from '@/templates/TrainQueueTemplate.vue'
-import { mockR3VsLeaders, mockR4R5Officers, mockTrips } from '@/data/mock'
+import { mockR3VsLeaders, mockR3WeeklyTop, mockR4R5Officers, mockTrips } from '@/data/mock'
 import { useTrainQueueStore } from '@/stores/trainQueue'
 import type { Officer, OfficerWithLastTrip } from '@/types/train'
 import { gameDaysAgo } from '@/utils/gameDay'
@@ -15,7 +15,7 @@ import { gameDaysAgo } from '@/utils/gameDay'
 const store = useTrainQueueStore()
 
 // Этап 2: данные из мока; этап 3: загрузка из Google Sheets
-store.load(mockTrips, mockR4R5Officers, mockR3VsLeaders)
+store.load(mockTrips, mockR4R5Officers, mockR3WeeklyTop, mockR3VsLeaders)
 
 const username = computed(() => store.currentDriver?.name ?? null)
 const lastTripDaysAgo = computed(() => store.lastTripDaysAgo)

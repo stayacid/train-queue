@@ -17,3 +17,9 @@ export type OfficerWithLastTrip = Officer & {
   /** Игровых дней с последней поездки; null, если поездок нет */
   daysAgo: number | null
 }
+
+/**
+ * Топ-3 R3 по VS на игровую неделю: ключ — понедельник недели (ISO-дата).
+ * Тройка недели управляет поездом на следующей неделе.
+ */
+export type R3WeeklyTop = Record<string, Officer[]>

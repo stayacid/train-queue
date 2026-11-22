@@ -1,4 +1,4 @@
-import type { Officer, TripRecord } from '@/types/train'
+import type { Officer, R3WeeklyTop, TripRecord } from '@/types/train'
 
 /** Журнал поездок, новые записи сверху */
 export const mockTrips: TripRecord[] = [
@@ -42,3 +42,31 @@ export const mockR3VsLeaders: Officer[] = [
   { name: 'Шторм', rank: 'R3' },
   { name: 'Рай', rank: 'R3' },
 ]
+
+/**
+ * Топ-3 R3 по VS на игровую неделю. Ключ — понедельник недели (ISO-дата).
+ * Тройка недели управляет поездом на следующей неделе по порядку:
+ * 1-й R3-день недели — #1, 2-й — #2, 3-й — #3, 4-й и далее — по кругу.
+ */
+export const mockR3WeeklyTop: R3WeeklyTop = {
+  '2026-11-16': [
+    { name: 'Гром', rank: 'R3' },
+    { name: 'Циклон', rank: 'R3' },
+    { name: 'Рай', rank: 'R3' },
+  ],
+  '2026-11-09': [
+    { name: 'Мираж', rank: 'R3' },
+    { name: 'Гром', rank: 'R3' },
+    { name: 'Стальной', rank: 'R3' },
+  ],
+  '2026-11-02': [
+    { name: 'Стальной', rank: 'R3' },
+    { name: 'Мираж', rank: 'R3' },
+    { name: 'Шторм', rank: 'R3' },
+  ],
+  '2026-10-26': [
+    { name: 'Циклон', rank: 'R3' },
+    { name: 'Рай', rank: 'R3' },
+    { name: 'Гром', rank: 'R3' },
+  ],
+}
