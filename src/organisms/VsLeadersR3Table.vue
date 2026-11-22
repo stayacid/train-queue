@@ -4,6 +4,7 @@ import LastTripCell from '@/molecules/LastTripCell.vue'
 import PagedTable from '@/molecules/PagedTable.vue'
 import type { TableColumn } from '@/types/table'
 import type { OfficerWithLastTrip } from '@/types/train'
+import { cooldownDaysFor } from '@/utils/cooldown'
 
 defineProps<{ rows: OfficerWithLastTrip[] }>()
 
@@ -27,6 +28,7 @@ const columns: TableColumn[] = [
           v-if="row.lastTripDate !== undefined || row.daysAgo !== undefined"
           :last-trip-date="row.lastTripDate ?? null"
           :days-ago="row.daysAgo ?? null"
+          :cooldown-days="cooldownDaysFor(row.rank)"
         />
       </template>
     </PagedTable>

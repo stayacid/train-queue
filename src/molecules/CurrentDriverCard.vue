@@ -1,13 +1,14 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 
-import { MIN_DAYS_BETWEEN_DRIVES } from '@/constants'
 import { pluralDays } from '@/utils/format'
 
 const props = defineProps<{
   username: string
   /** Дней с момента последней поездки этого водителя; null — записей нет */
   lastTripDaysAgo: number | null
+  /** Порог кулдауна в игровых днях для ранга водителя (R3 — 10, R4/R5 — 14) */
+  cooldownDays: number
 }>()
 
 const lastTripText = computed(() => {
@@ -19,10 +20,13 @@ const lastTripText = computed(() => {
 
 /** Игрок управлял слишком недавно — показываем предупреждение */
 const isTooSoon = computed(
-  () => props.lastTripDaysAgo !== null && props.lastTripDaysAgo < MIN_DAYS_BETWEEN_DRIVES,
+  () => props.lastTripDaysAgo !== null && props.lastTripDaysAgo < props.cooldownDays,
 )
 
-const warningText = `Управлял(а) менее ${MIN_DAYS_BETWEEN_DRIVES} ${pluralDays(MIN_DAYS_BETWEEN_DRIVES)} назад! Рекомендуется выбрать другого игрока!`
+const warningText = computed(
+  () =>
+    `Управлял(а) менее ${props.cooldownDays} ${pluralDays(props.cooldownDays)} назад! Рекомендуется выбрать другого игрока!`,
+)
 </script>
 
 <template>

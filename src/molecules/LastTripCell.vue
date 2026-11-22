@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 
-import { MIN_DAYS_BETWEEN_DRIVES } from '@/constants'
 import { formatDate, pluralDays } from '@/utils/format'
 
 const props = defineProps<{
@@ -9,13 +8,15 @@ const props = defineProps<{
   lastTripDate: string | null
   /** Игровых дней с последней поездки; null, если поездок нет */
   daysAgo: number | null
+  /** Порог кулдауна в игровых днях для ранга офицера (R3 — 10, R4/R5 — 14) */
+  cooldownDays: number
 }>()
 
 // `== null` покрывает и null, и undefined: el-table-column (Element Plus)
 // вызывает default-слот с пустой строкой row: {}, поэтому пропсы могут
 // прийти undefined во время «детект-рендера» колонки.
 const isOnCooldown = computed(
-  () => props.daysAgo != null && props.daysAgo < MIN_DAYS_BETWEEN_DRIVES,
+  () => props.daysAgo != null && props.daysAgo < props.cooldownDays,
 )
 
 const label = computed(() => {

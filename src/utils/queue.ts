@@ -1,4 +1,4 @@
-import { MIN_DAYS_BETWEEN_DRIVES } from '@/constants'
+import { MIN_DAYS_R3 } from '@/constants'
 import type { Officer, R3WeeklyTop, TripRecord } from '@/types/train'
 import { addGameDays, currentGameDay, gameDaysAgo, gameWeekMonday } from '@/utils/gameDay'
 
@@ -103,7 +103,7 @@ function r3DriverForToday(
 
   const onCooldown = (name: string): boolean => {
     const lastTrip = sortedTrips.find((trip) => trip.name === name)
-    return lastTrip !== undefined && gameDaysAgo(lastTrip.date, nowMs) < MIN_DAYS_BETWEEN_DRIVES
+    return lastTrip !== undefined && gameDaysAgo(lastTrip.date, nowMs) < MIN_DAYS_R3
   }
 
   const count = top3.length

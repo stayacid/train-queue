@@ -10,6 +10,7 @@ import TrainQueueTemplate from '@/templates/TrainQueueTemplate.vue'
 import { mockR3VsLeaders, mockR3WeeklyTop, mockR4R5Officers, mockTrips } from '@/data/mock'
 import { useTrainQueueStore } from '@/stores/trainQueue'
 import type { Officer, OfficerWithLastTrip } from '@/types/train'
+import { cooldownDaysFor } from '@/utils/cooldown'
 import { gameDaysAgo } from '@/utils/gameDay'
 
 const store = useTrainQueueStore()
@@ -19,6 +20,11 @@ store.load(mockTrips, mockR4R5Officers, mockR3WeeklyTop, mockR3VsLeaders)
 
 const username = computed(() => store.currentDriver?.name ?? null)
 const lastTripDaysAgo = computed(() => store.lastTripDaysAgo)
+
+/** Порог кулдауна для ранга текущего водителя (R3 — 10, R4/R5 — 14) */
+const driverCooldownDays = computed(() =>
+  store.currentDriver === null ? 0 : cooldownDaysFor(store.currentDriver.rank),
+)
 
 /** Строка таблицы офицеров: офицер + дата последней поездки и дней назад */
 function officerRow(officer: Officer): OfficerWithLastTrip {
@@ -45,6 +51,7 @@ const vsLeaderRows = computed<OfficerWithLastTrip[]>(() => store.r3VsLeaders.map
         v-if="username !== null"
         :username="username"
         :last-trip-days-ago="lastTripDaysAgo"
+        :cooldown-days="driverCooldownDays"
       />
       <el-empty v-else description="Не удалось определить водителя" />
     </template>
