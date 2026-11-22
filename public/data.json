@@ -1,0 +1,124 @@
+{
+  "journal": [
+    {
+      "name": "Вассилий",
+      "date": "2026-11-21",
+      "rank": "R3"
+    },
+    {
+      "name": "шип666",
+      "date": "2026-11-20",
+      "rank": "R5"
+    },
+    {
+      "name": "juzeppo",
+      "date": "2026-11-19",
+      "rank": "R3"
+    },
+    {
+      "name": "Danny9821",
+      "date": "2026-11-18",
+      "rank": "R4"
+    },
+    {
+      "name": "BuenoMalo",
+      "date": "2026-11-17",
+      "rank": "R3"
+    },
+    {
+      "name": "Заебышь",
+      "date": "2026-11-16",
+      "rank": "R4"
+    },
+    {
+      "name": "Nick07",
+      "date": "2026-11-15",
+      "rank": "R3"
+    },
+    {
+      "name": "Экселька",
+      "date": "2026-11-14",
+      "rank": "R4"
+    },
+    {
+      "name": "veto29",
+      "date": "2026-11-13",
+      "rank": "R3"
+    },
+    {
+      "name": "ion333",
+      "date": "2026-11-12",
+      "rank": "R4"
+    },
+    {
+      "name": "Stays",
+      "date": "2026-11-11",
+      "rank": "R3"
+    },
+    {
+      "name": "Мияги",
+      "date": "2026-11-10",
+      "rank": "R4"
+    },
+    {
+      "name": "veto29",
+      "date": "2026-11-09",
+      "rank": "R3"
+    }
+  ],
+  "r4r5": [
+    {
+      "name": "Oleg150rus",
+      "rank": "R4"
+    },
+    {
+      "name": "golovaUshko",
+      "rank": "R4"
+    },
+    {
+      "name": "Stays",
+      "rank": "R4"
+    },
+    {
+      "name": "Мияги",
+      "rank": "R4"
+    },
+    {
+      "name": "ion333",
+      "rank": "R4"
+    },
+    {
+      "name": "Экселька",
+      "rank": "R4"
+    },
+    {
+      "name": "Заебышь",
+      "rank": "R4"
+    },
+    {
+      "name": "Danny9821",
+      "rank": "R4"
+    },
+    {
+      "name": "шип666",
+      "rank": "R5"
+    }
+  ],
+  "weeklyTop": {
+    "2026-11-16": [
+      {
+        "name": "juzeppo",
+        "rank": "R3"
+      },
+      {
+        "name": "Nick07",
+        "rank": "R3"
+      },
+      {
+        "name": "BuenoMalo",
+        "rank": "R3"
+      }
+    ]
+  },
+  "fetchedAt": "2026-11-22T12:34:33.971Z"
+}

@@ -6,7 +6,10 @@ import vueJsx from '@vitejs/plugin-vue-jsx'
 import vueDevTools from 'vite-plugin-vue-devtools'
 
 // https://vite.dev/config/
-export default defineConfig({
+// Продакшен собирается под GitHub Pages (сайт stayacid.github.io/train-queue/),
+// поэтому base — путь проекта. В dev остаётся корень.
+export default defineConfig(({ mode }) => ({
+  base: mode === 'production' ? '/train-queue/' : '/',
   plugins: [
     vue(),
     vueJsx(),
@@ -17,4 +20,4 @@ export default defineConfig({
       '@': fileURLToPath(new URL('./src', import.meta.url)),
     },
   },
-})
+}))

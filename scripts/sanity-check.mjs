@@ -1,4 +1,5 @@
-// Sanity-проверка алгоритма очереди (jiti грузит TS с алиасом @/)
+// Быстрая проверка алгоритма очереди (jiti: TS без сборки)
+// Запуск: node scripts/sanity-check.mjs
 import assert from 'node:assert/strict'
 import { createJiti } from 'jiti'
 
@@ -8,69 +9,71 @@ const jiti = createJiti(import.meta.url, {
 
 const { computeCurrentDriver } = await jiti.import('../src/utils/queue.ts')
 const { currentGameDay, gameDaysAgo, gameWeekMonday } = await jiti.import('../src/utils/gameDay.ts')
-const { mockTrips, mockR4R5Officers, mockR3VsLeaders, mockR3WeeklyTop } = await jiti.import('../src/data/mock.ts')
+const { mockTrips, mockR4R5Officers, mockR3WeeklyTop } = await jiti.import('../src/data/mock.ts')
 
-const now = Date.parse('2026-11-21T15:51:00+03:00') // 2026-11-21 15:51 МСК
+// Фиксированная «текущая» дата: пятница 21.11.2026, 15:51 МСК
+const now = Date.parse('2026-11-21T15:51:00+03:00')
 
-// --- Игровой день (старт 05:00 МСК) ---
-assert.equal(currentGameDay(now), '2026-11-21', 'после 05:00 — текущий календарный день')
-assert.equal(currentGameDay(Date.parse('2026-11-21T04:59:00+03:00')), '2026-11-20', 'до 05:00 — вчерашний игровой день')
-assert.equal(currentGameDay(Date.parse('2026-11-21T05:00:00+03:00')), '2026-11-21', 'ровно в 05:00 — новый игровой день')
+// --- gameDay ---
+assert.equal(currentGameDay(now), '2026-11-21')
+assert.equal(currentGameDay(Date.parse('2026-11-21T04:59:00+03:00')), '2026-11-20', 'до 05:00 МСК — ещё вчера')
+assert.equal(currentGameDay(Date.parse('2026-11-21T05:00:00+03:00')), '2026-11-21', 'с 05:00 МСК — сегодня')
 
-// --- Игровая неделя (понедельник) ---
-assert.equal(gameWeekMonday('2026-11-22'), '2026-11-16', 'воскресенье → понедельник недели')
-assert.equal(gameWeekMonday('2026-11-16'), '2026-11-16', 'понедельник → сам')
-assert.equal(gameWeekMonday('2026-11-17'), '2026-11-16', 'вторник → понедельник недели')
+// --- gameWeekMonday (игровая неделя начинается в понедельник 05:00 МСК) ---
+assert.equal(gameWeekMonday('2026-11-21'), '2026-11-16')
+assert.equal(gameWeekMonday('2026-11-16'), '2026-11-16', 'понедельник сам себе понедельник')
+assert.equal(gameWeekMonday('2026-11-15'), '2026-11-09', 'воскресенье — неделя от 09.11')
 
-// --- Дней назад ---
-assert.equal(gameDaysAgo('2026-11-20', now), 1, 'вчера = 1')
-assert.equal(gameDaysAgo('2026-11-21', now), 0, 'сегодня = 0')
-assert.equal(gameDaysAgo('2026-11-11', now), 10, '10 дней назад')
+// --- gameDaysAgo ---
+assert.equal(gameDaysAgo('2026-11-21', now), 0)
+assert.equal(gameDaysAgo('2026-11-20', now), 1)
+assert.equal(gameDaysAgo('2026-11-07', now), 14)
 
-// --- R4/R5 очередь (логика без изменений) ---
-// Последняя поездка R3 → сегодня день R4/R5; последний R4/R5 — Вольф (11-18) → следующий Тень
+// --- День R4/R5: очередь по списку, указатель после последнего водителя ---
+// 11-21 (сб) — R3-день (последняя поездка 11-20 R3), 11-20 (пт) — R4/R5-день:
+// последний водитель R4/R5 — Вольф (11-18, позиция 2) → следующий Тень
 const tripsR3Last = [
   { name: 'Гром', date: '2026-11-20', rank: 'R3' },
   { name: 'Вольф', date: '2026-11-18', rank: 'R5' },
   { name: 'Тень', date: '2026-11-17', rank: 'R4' },
 ]
-let driver = computeCurrentDriver(tripsR3Last, mockR4R5Officers, mockR3WeeklyTop, mockR3VsLeaders, now)
-assert.equal(driver?.name, 'Тень', 'после Вольфа по ростеру — Тень')
+let driver = computeCurrentDriver(tripsR3Last, mockR4R5Officers, mockR3WeeklyTop, now)
+assert.equal(driver?.name, 'Тень', 'указатель после последнего водителя R4/R5')
 
-// Последний R4/R5 — Альфа (конец ростера) → по кругу — Заря
+// Последний в журнале — R5, день R4/R5 → следующий за ним в списке
 const tripsAlfaLast = [
   { name: 'Шторм', date: '2026-11-20', rank: 'R3' },
   { name: 'Альфа', date: '2026-11-19', rank: 'R5' },
 ]
-driver = computeCurrentDriver(tripsAlfaLast, mockR4R5Officers, mockR3WeeklyTop, mockR3VsLeaders, now)
-assert.equal(driver?.name, 'Заря', 'после Альфы по кругу — Заря')
+driver = computeCurrentDriver(tripsAlfaLast, mockR4R5Officers, mockR3WeeklyTop, now)
+assert.equal(driver?.name, 'Заря', 'Альфа — последняя в списке → по кругу первая')
 
-// Пустой журнал → старт цикла: день R4/R5, голова ростера
-driver = computeCurrentDriver([], mockR4R5Officers, mockR3WeeklyTop, mockR3VsLeaders, now)
-assert.equal(driver?.name, 'Заря', 'пустой журнал → голова ростера')
+// Пустой журнал → день R4/R5 → первый в списке
+driver = computeCurrentDriver([], mockR4R5Officers, mockR3WeeklyTop, now)
+assert.equal(driver?.name, 'Заря', 'пустой журнал → первый в списке')
 
-// Пустой ростер R4/R5 → null
-driver = computeCurrentDriver(tripsR3Last, [], mockR3WeeklyTop, mockR3VsLeaders, now)
-assert.equal(driver, null, 'пустой ростер → null')
+// Пустой список R4/R5 → null
+driver = computeCurrentDriver(tripsR3Last, [], mockR3WeeklyTop, now)
+assert.equal(driver, null, 'пустой список R4/R5 → null')
 
-// Последний R4/R5-водитель отсутствует в ростере → очередь стартует с головы
+// Водитель R4/R5 не найден в списке → указатель сбрасывается на первый
 const tripsUnknownDriver = [
   { name: 'Гром', date: '2026-11-20', rank: 'R3' },
   { name: 'Некто', date: '2026-11-19', rank: 'R4' },
 ]
-driver = computeCurrentDriver(tripsUnknownDriver, mockR4R5Officers, mockR3WeeklyTop, mockR3VsLeaders, now)
-assert.equal(driver?.name, 'Заря', 'водитель вне ростера → старт с головы')
+driver = computeCurrentDriver(tripsUnknownDriver, mockR4R5Officers, mockR3WeeklyTop, now)
+assert.equal(driver?.name, 'Заря', 'неизвестный водитель → первый в списке')
 
-// --- R3: топ-3 за прошлую игровую неделю ---
-// Мок: сегодня 2026-11-21 (сб), день R3 (последняя поездка — R4, 11-20).
-// Неделя 11-16..11-22: R3-поездки 11-16 и 11-19 → слот 2 → #3 тройки недели 11-09 = Стальной.
-// Все трое на кулдауне (последние 11-13, 11-16, 11-19) → назначенный, Стальной.
-driver = computeCurrentDriver(mockTrips, mockR4R5Officers, mockR3WeeklyTop, mockR3VsLeaders, now)
-assert.equal(driver?.name, 'Стальной', 'мок: слот 2 → #3; все на кулдауне → назначенный')
+// Мок-данные: 11-21 — R3-день, тройка прошлой недели (11-09) = [Мираж, Гром, Стальной],
+// R3-поездки с 11-16 по 11-21: Мираж 11-16, Гром 11-19 → слот 2 → #3 Стальной.
+// Все трое на кулдауне (8/5/2 дня) → назначенный (UI покажет предупреждение)
+driver = computeCurrentDriver(mockTrips, mockR4R5Officers, mockR3WeeklyTop, now)
+assert.equal(driver?.name, 'Стальной', 'мок: 2-й R3-день недели → #3 тройки прошлой недели')
 
+// --- День R3: тройка прошлой недели по слоту ---
 // 1-й R3-день недели → #1
 const r3First = [{ name: 'Заря', date: '2026-11-23', rank: 'R4' }]
-driver = computeCurrentDriver(r3First, mockR4R5Officers, mockR3WeeklyTop, mockR3VsLeaders, Date.parse('2026-11-24T12:00:00+03:00'))
+driver = computeCurrentDriver(r3First, mockR4R5Officers, mockR3WeeklyTop, Date.parse('2026-11-24T12:00:00+03:00'))
 assert.equal(driver?.name, 'Гром', '1-й R3-день недели → #1 тройки прошлой недели')
 
 // 2-й R3-день недели → #2
@@ -78,7 +81,7 @@ const r3Second = [
   { name: 'Заря', date: '2026-11-24', rank: 'R4' },
   { name: 'Мираж', date: '2026-11-23', rank: 'R3' },
 ]
-driver = computeCurrentDriver(r3Second, mockR4R5Officers, mockR3WeeklyTop, mockR3VsLeaders, Date.parse('2026-11-25T12:00:00+03:00'))
+driver = computeCurrentDriver(r3Second, mockR4R5Officers, mockR3WeeklyTop, Date.parse('2026-11-25T12:00:00+03:00'))
 assert.equal(driver?.name, 'Циклон', '2-й R3-день недели → #2')
 
 // 3-й R3-день недели → #3
@@ -87,7 +90,7 @@ const r3Third = [
   { name: 'Мираж', date: '2026-11-25', rank: 'R3' },
   { name: 'Гром', date: '2026-11-23', rank: 'R3' },
 ]
-driver = computeCurrentDriver(r3Third, mockR4R5Officers, mockR3WeeklyTop, mockR3VsLeaders, Date.parse('2026-11-27T12:00:00+03:00'))
+driver = computeCurrentDriver(r3Third, mockR4R5Officers, mockR3WeeklyTop, Date.parse('2026-11-27T12:00:00+03:00'))
 assert.equal(driver?.name, 'Рай', '3-й R3-день недели → #3')
 
 // 4-й R3-день недели → по кругу снова #1
@@ -104,7 +107,7 @@ const top3Fresh = {
     { name: 'Циклон', rank: 'R3' },
   ],
 }
-driver = computeCurrentDriver(r3Fourth, mockR4R5Officers, top3Fresh, mockR3VsLeaders, Date.parse('2026-11-29T12:00:00+03:00'))
+driver = computeCurrentDriver(r3Fourth, mockR4R5Officers, top3Fresh, Date.parse('2026-11-29T12:00:00+03:00'))
 assert.equal(driver?.name, 'Шторм', '4-й R3-день недели → по кругу снова #1')
 
 // Назначенный на кулдауне → следующий доступный из тройки
@@ -113,7 +116,7 @@ const r3Cooldown = [
   { name: 'Мираж', date: '2026-11-23', rank: 'R3' },
   { name: 'Циклон', date: '2026-11-22', rank: 'R3' }, // 3 дня до 11-25 → на кулдауне
 ]
-driver = computeCurrentDriver(r3Cooldown, mockR4R5Officers, mockR3WeeklyTop, mockR3VsLeaders, Date.parse('2026-11-25T12:00:00+03:00'))
+driver = computeCurrentDriver(r3Cooldown, mockR4R5Officers, mockR3WeeklyTop, Date.parse('2026-11-25T12:00:00+03:00'))
 assert.equal(driver?.name, 'Рай', 'назначенный на кулдауне → следующий доступный')
 
 // Все трое на кулдауне → назначенный (UI покажет мягкое предупреждение)
@@ -124,7 +127,7 @@ const r3AllCooldown = [
   { name: 'Гром', date: '2026-11-21', rank: 'R3' },
   { name: 'Рай', date: '2026-11-20', rank: 'R3' },
 ]
-driver = computeCurrentDriver(r3AllCooldown, mockR4R5Officers, mockR3WeeklyTop, mockR3VsLeaders, Date.parse('2026-11-25T12:00:00+03:00'))
+driver = computeCurrentDriver(r3AllCooldown, mockR4R5Officers, mockR3WeeklyTop, Date.parse('2026-11-25T12:00:00+03:00'))
 assert.equal(driver?.name, 'Циклон', 'все на кулдауне → назначенный')
 
 // Нет записи за прошлую неделю → ближайшая предыдущая
@@ -135,37 +138,32 @@ const top3Sparse = {
     { name: 'Стальной', rank: 'R3' },
   ],
 }
-driver = computeCurrentDriver(r3First, mockR4R5Officers, top3Sparse, mockR3VsLeaders, Date.parse('2026-11-24T12:00:00+03:00'))
+driver = computeCurrentDriver(r3First, mockR4R5Officers, top3Sparse, Date.parse('2026-11-24T12:00:00+03:00'))
 assert.equal(driver?.name, 'Гром', 'нет записи за неделю → ближайшая предыдущая')
 
-// Нет топ-3 вообще → первые три из рейтинга VS
-driver = computeCurrentDriver(r3First, mockR4R5Officers, {}, mockR3VsLeaders, Date.parse('2026-11-24T12:00:00+03:00'))
-assert.equal(driver?.name, 'Гром', 'нет топ-3 → первый из рейтинга VS')
-
-// День R3, нет ни топ-3, ни рейтинга VS → null
-driver = computeCurrentDriver(r3First, mockR4R5Officers, {}, [], Date.parse('2026-11-24T12:00:00+03:00'))
-assert.equal(driver, null, 'нет данных R3 → null')
+// Нет топ-3 вообще (52 недели назад) → null
+driver = computeCurrentDriver(r3First, mockR4R5Officers, {}, Date.parse('2026-11-24T12:00:00+03:00'))
+assert.equal(driver, null, 'нет топ-3 → null')
 
 // Перемешанный журнал → результат не зависит от порядка записей
 const shuffled = [...mockTrips].reverse()
-driver = computeCurrentDriver(shuffled, mockR4R5Officers, mockR3WeeklyTop, mockR3VsLeaders, now)
+driver = computeCurrentDriver(shuffled, mockR4R5Officers, mockR3WeeklyTop, now)
 assert.equal(driver?.name, 'Стальной', 'порядок записей журнала не важен')
 
 // --- Стор (Pinia) — интеграционно ---
 const { createPinia, setActivePinia } = await jiti.import('pinia')
 const { useTrainQueueStore } = await jiti.import('../src/stores/trainQueue.ts')
+
 setActivePinia(createPinia())
 const store = useTrainQueueStore()
-// Актуально для недели мока 2026-11-16..2026-11-22: день R3, слот 2, все на кулдауне → Стальной
-store.load(mockTrips, mockR4R5Officers, mockR3WeeklyTop, mockR3VsLeaders)
-assert.equal(store.currentDriver?.name, 'Стальной', 'стор: день R3, слот 2, все на кулдауне → назначенный')
-assert.equal(store.lastTripDaysAgo, gameDaysAgo('2026-11-13'), 'стор: дней с последней поездки Стального')
-assert.equal(store.lastTripOf('Гром')?.date, '2026-11-19', 'стор: последняя поездка офицера')
-assert.equal(store.r3WeeklyTop['2026-11-09']?.length, 3, 'стор: топ-3 недели загружен')
+store.load(mockTrips, mockR4R5Officers, mockR3WeeklyTop)
+assert.equal(store.currentDriver?.name, 'Стальной')
+assert.equal(store.lastTripDaysAgo, gameDaysAgo('2026-11-13'), 'последняя поездка Стального — 11-13')
+assert.equal(store.lastTripOf('Гром')?.date, '2026-11-19')
+assert.equal(store.r3WeeklyTop['2026-11-09']?.length, 3)
 
-// Пустые данные → null
-store.load([], [], {}, [])
-assert.equal(store.currentDriver, null, 'стор: пустые данные → null')
-assert.equal(store.lastTripDaysAgo, null, 'стор: без водителя → дней назад null')
+store.load([], [], {})
+assert.equal(store.currentDriver, null)
+assert.equal(store.lastTripDaysAgo, null)
 
 console.log('SANITY OK')

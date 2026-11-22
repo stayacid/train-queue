@@ -1,6 +1,6 @@
 import { MIN_DAYS_R3 } from '@/constants'
 import type { Officer, R3WeeklyTop, TripRecord } from '@/types/train'
-import { addGameDays, currentGameDay, gameDaysAgo, gameWeekMonday } from '@/utils/gameDay'
+import { addGameDays, currentGameDay, currentGameWeekMonday, gameDaysAgo } from '@/utils/gameDay'
 
 /** Сколько недель назад ищем топ-3, если на прошлой неделе записи нет */
 const MAX_WEEKS_BACK = 52
@@ -30,22 +30,45 @@ function top3ForWeek(weeklyTop: R3WeeklyTop, weekMonday: string): Officer[] | nu
 }
 
 /**
+ * Тройка R3, которая управляет поездом в ТЕКУЩЕЙ игровой неделе.
+ * Берём топ-3 за предыдущую игровую неделю (неделя начинается в
+ * понедельник 05:00 МСК); если там записи нет — идём назад по неделям.
+ * Возвращает найденный понедельник и тройку, либо null, если топ-3
+ * не найден вовсе (вкладка «Топ3 R3» пуста).
+ */
+export function weekTopForCurrentWeek(
+  weeklyTop: R3WeeklyTop,
+  nowMs: number = Date.now(),
+): { weekMonday: string; officers: Officer[] } | null {
+  const weekMonday = currentGameWeekMonday(nowMs)
+  if (weekMonday === null) {
+    return null
+  }
+  const prevWeekMonday = addGameDays(weekMonday, -7) ?? weekMonday
+  const officers = top3ForWeek(weeklyTop, prevWeekMonday)
+  if (officers === null || officers.length === 0) {
+    return null
+  }
+  return { weekMonday: prevWeekMonday, officers }
+}
+
+/**
  * Кто сегодня управляет поездом.
  *
  * - **Чередование** сохраняется 1:1: фаза определяется из последней записи
  *   журнала — последний водитель R4/R5 → сегодня день R3; R3 → день R4/R5.
- * - **День R4/R5**: следующий в ростере после последнего R4/R5-водителя
+ * - **День R4/R5**: следующий в списке R4/R5 после последнего R4/R5-водителя
  *   (циклически).
- * - **День R3**: поезд ведут топ-3 R3 по VS за предыдущую игровую неделю
+ * - **День R3**: поезд ведут топ-3 R3 за предыдущую игровую неделю
  *   (неделя начинается в понедельник 05:00 МСК), по порядку: 1-й R3-день
  *   недели → #1, 2-й → #2, 3-й → #3, 4-й и далее — по кругу (снова #1).
  *   Слот = количество R3-поездок в журнале за текущую игровую неделю.
  *   Если назначенный на кулдауне (< 10 дней) — следующий доступный из тройки
  *   по порядку; если все на кулдауне — назначенный (мягкое предупреждение
- *   в UI). Если топ-3 за неделю не найден — ближайшая предыдущая неделя,
- *   если и её нет — первые три из рейтинга VS (фолбэк).
- * - **Пустой журнал** → старт цикла: день R4/R5, голова ростера.
- * - **Последний R4/R5-водитель отсутствует в ростере** → очередь стартует с головы.
+ *   в UI). Если топ-3 за предыдущую неделю не найден — ближайшая
+ *   предыдущая неделя; если и её нет — водитель не определяется (null).
+ * - **Пустой журнал** → старт цикла: день R4/R5, голова списка.
+ * - **Последний R4/R5-водитель отсутствует в списке** → очередь стартует с головы.
  *
  * Кулдаун не блокирует водителя: это мягкое предупреждение в UI,
  * кроме выбора следующего доступного из тройки R3.
@@ -54,13 +77,12 @@ export function computeCurrentDriver(
   trips: TripRecord[],
   r4r5Roster: Officer[],
   r3WeeklyTop: R3WeeklyTop,
-  r3VsLeaders: Officer[],
   nowMs: number = Date.now(),
 ): Officer | null {
   const sorted = [...trips].sort((a, b) => b.date.localeCompare(a.date))
   const last = sorted[0]
   if (last !== undefined && isR4R5Trip(last)) {
-    return r3DriverForToday(sorted, r3WeeklyTop, r3VsLeaders, nowMs)
+    return r3DriverForToday(sorted, r3WeeklyTop, nowMs)
   }
 
   const lastR4R5 = sorted.find(isR4R5Trip)
@@ -75,26 +97,20 @@ export function computeCurrentDriver(
 }
 
 /** Водитель R3 на сегодня: слот из тройки за предыдущую игровую неделю */
-function r3DriverForToday(
-  sortedTrips: TripRecord[],
-  r3WeeklyTop: R3WeeklyTop,
-  r3VsLeaders: Officer[],
-  nowMs: number,
-): Officer | null {
-  const today = currentGameDay(nowMs)
-  const weekMonday = gameWeekMonday(today)
-  if (weekMonday === null) {
-    return r3VsLeaders[0] ?? null
+function r3DriverForToday(sortedTrips: TripRecord[], r3WeeklyTop: R3WeeklyTop, nowMs: number): Officer | null {
+  const weekTop = weekTopForCurrentWeek(r3WeeklyTop, nowMs)
+  if (weekTop === null) {
+    return null
   }
-
-  const prevWeekMonday = addGameDays(weekMonday, -7) ?? weekMonday
-  const top3 = top3ForWeek(r3WeeklyTop, prevWeekMonday) ?? r3VsLeaders.slice(0, 3)
-  if (top3.length === 0) {
+  const top3 = weekTop.officers
+  const weekMonday = currentGameWeekMonday(nowMs)
+  if (weekMonday === null) {
     return null
   }
 
   // Слот: число R3-поездок в журнале за текущую игровую неделю
   let slot = 0
+  const today = currentGameDay(nowMs)
   for (const trip of sortedTrips) {
     if (trip.rank === 'R3' && trip.date >= weekMonday && trip.date <= today) {
       slot++

@@ -7,6 +7,16 @@ export function formatDate(isoDate: string): string {
   return `${day}.${month}.${year}`
 }
 
+/** Форматирует ISO-время (UTC) в ДД.ММ.ГГГГ ЧЧ:ММ в локальной часовой зоне браузера */
+export function formatDateTime(isoDateTime: string): string {
+  const date = new Date(isoDateTime)
+  if (Number.isNaN(date.getTime())) {
+    return isoDateTime
+  }
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return `${pad(date.getDate())}.${pad(date.getMonth() + 1)}.${date.getFullYear()} ${pad(date.getHours())}:${pad(date.getMinutes())}`
+}
+
 /** Русская плюрализация слова «день»: 1 день, 2 дня, 5 дней */
 export function pluralDays(n: number): string {
   const mod10 = n % 10

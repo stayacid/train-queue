@@ -10,12 +10,17 @@ export type TripRecord = Officer & {
   date: string
 }
 
-/** Строка таблицы офицеров (R4/R5 и лидеры VS R3): офицер + данные о последней поездке */
+/** Строка таблицы офицеров: офицер + данные о последней поездке */
 export type OfficerWithLastTrip = Officer & {
   /** ISO-дата последней поездки; null, если в журнале поездок нет */
   lastTripDate: string | null
   /** Игровых дней с последней поездки; null, если поездок нет */
   daysAgo: number | null
+}
+
+/** Строка таблицы «Тройка R3 на эту неделю»: позиция в тройке (1–3) */
+export type WeekTopRow = OfficerWithLastTrip & {
+  position: number
 }
 
 /**
