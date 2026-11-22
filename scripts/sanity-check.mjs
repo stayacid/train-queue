@@ -150,6 +150,39 @@ const shuffled = [...mockTrips].reverse()
 driver = computeCurrentDriver(shuffled, mockR4R5Officers, mockR3WeeklyTop, now)
 assert.equal(driver?.name, 'Стальной', 'порядок записей журнала не важен')
 
+// --- Поездка сегодняшнего дня не влияет на назначение (это результат дня) ---
+// now = 11-21: последняя поездка до сегодня — Гром 11-20 R3 → день R4/R5,
+// последний R4/R5 — Вольф 11-18 → следующий в списке Тень.
+// Добавляем поездку сегодняшнего дня (11-21, R4) — назначение не меняется.
+const tripsWithToday = [
+  { name: 'Мираж', date: '2026-11-21', rank: 'R4' },
+  { name: 'Гром', date: '2026-11-20', rank: 'R3' },
+  { name: 'Вольф', date: '2026-11-18', rank: 'R5' },
+  { name: 'Тень', date: '2026-11-17', rank: 'R4' },
+]
+driver = computeCurrentDriver(tripsWithToday, mockR4R5Officers, mockR3WeeklyTop, now)
+assert.equal(driver?.name, 'Тень', 'поездка сегодняшнего дня не меняет назначение')
+
+// Поездка сегодняшнего дня не входит в слот R3:
+// неделя 11-23, R3-поездки до сегодня — Мираж 11-23 → слот 1 → #2 Циклон
+const r3WithToday = [
+  { name: 'Мираж', date: '2026-11-25', rank: 'R3' },
+  { name: 'Заря', date: '2026-11-24', rank: 'R4' },
+  { name: 'Мираж', date: '2026-11-23', rank: 'R3' },
+]
+driver = computeCurrentDriver(r3WithToday, mockR4R5Officers, mockR3WeeklyTop, Date.parse('2026-11-25T12:00:00+03:00'))
+assert.equal(driver?.name, 'Циклон', 'поездка сегодняшнего дня не входит в слот R3')
+
+// Кулдаун учитывает поездку сегодняшнего дня:
+// назначенный по слоту (1) — Циклон, но он ездил сегодня → на кулдауне → следующий Рай
+const r3TodayCooldown = [
+  { name: 'Циклон', date: '2026-11-25', rank: 'R3' },
+  { name: 'Заря', date: '2026-11-24', rank: 'R4' },
+  { name: 'Мираж', date: '2026-11-23', rank: 'R3' },
+]
+driver = computeCurrentDriver(r3TodayCooldown, mockR4R5Officers, mockR3WeeklyTop, Date.parse('2026-11-25T12:00:00+03:00'))
+assert.equal(driver?.name, 'Рай', 'поездка сегодняшнего дня учитывается в кулдауне')
+
 // --- Стор (Pinia) — интеграционно ---
 const { createPinia, setActivePinia } = await jiti.import('pinia')
 const { useTrainQueueStore } = await jiti.import('../src/stores/trainQueue.ts')
@@ -162,8 +195,18 @@ assert.equal(store.lastTripDaysAgo, gameDaysAgo('2026-11-13'), 'последня
 assert.equal(store.lastTripOf('Гром')?.date, '2026-11-19')
 assert.equal(store.r3WeeklyTop['2026-11-09']?.length, 3)
 
+// todayTrip — запись журнала на текущий игровой день
+const realToday = currentGameDay()
+store.load(
+  [{ name: 'Мираж', date: realToday, rank: 'R4' }, ...mockTrips],
+  mockR4R5Officers,
+  mockR3WeeklyTop,
+)
+assert.equal(store.todayTrip?.name, 'Мираж', 'todayTrip — поездка текущего игрового дня')
+
 store.load([], [], {})
 assert.equal(store.currentDriver, null)
 assert.equal(store.lastTripDaysAgo, null)
+assert.equal(store.todayTrip, null)
 
 console.log('SANITY OK')

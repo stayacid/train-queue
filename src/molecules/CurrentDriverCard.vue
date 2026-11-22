@@ -4,12 +4,20 @@ import { computed } from 'vue'
 import { pluralDays } from '@/utils/format'
 
 const props = defineProps<{
-  username: string
-  /** Дней с момента последней поездки этого водителя; null — записей нет */
+  /** Водитель, назначенный алгоритмом; null — алгоритм не определил */
+  username: string | null
+  /** Фактический машинист дня (запись журнала на текущий игровой день); null — записи нет */
+  actualDriver: string | null
+  /** Дней с момента последней поездки назначенного водителя; null — записей нет */
   lastTripDaysAgo: number | null
   /** Порог кулдауна в игровых днях для ранга водителя (R3 — 10, R4/R5 — 14) */
   cooldownDays: number
 }>()
+
+/** Фактический машинист отличается от назначенного — показываем строку */
+const showActualDriver = computed(
+  () => props.actualDriver !== null && props.actualDriver !== props.username,
+)
 
 const lastTripText = computed(() => {
   if (props.lastTripDaysAgo === null) {
@@ -31,10 +39,16 @@ const warningText = computed(
 
 <template>
   <el-card class="driver-card" shadow="hover">
-    <p class="driver-card__text">
-      Сегодня поездом управляет <strong class="driver-card__username">{{ username }}</strong>
+    <p v-if="username !== null" class="driver-card__text">
+      Сегодня поездом должен управлять <strong class="driver-card__username">{{ username }}</strong>
     </p>
-    <p v-if="lastTripDaysAgo !== null" class="driver-card__last-trip">
+    <p v-else class="driver-card__text driver-card__text--hint">
+      Водитель по алгоритму не определён — проверьте вкладку «Топ3 R3» в Google Sheets
+    </p>
+    <p v-if="showActualDriver" class="driver-card__actual">
+      Фактический машинист сегодня: <strong class="driver-card__username">{{ actualDriver }}</strong>
+    </p>
+    <p v-if="username !== null && lastTripDaysAgo !== null" class="driver-card__last-trip">
       <el-tooltip
         v-if="isTooSoon"
         :content="warningText"
@@ -53,18 +67,32 @@ const warningText = computed(
 <style scoped>
 .driver-card {
   max-width: 560px;
-  margin: 0 auto;
-  text-align: center;
+}
+
+.driver-card :deep(.el-card__body) {
+  padding: 20px 24px;
 }
 
 .driver-card__text {
   margin: 0;
   font-size: 20px;
+  line-height: 1.4;
+}
+
+.driver-card__text--hint {
+  font-size: 16px;
+  color: var(--el-text-color-secondary);
 }
 
 .driver-card__username {
   font-size: 22px;
+  font-weight: 700;
   color: var(--el-color-primary);
+}
+
+.driver-card__actual {
+  margin: 10px 0 0;
+  font-size: 16px;
 }
 
 .driver-card__last-trip {
@@ -75,13 +103,13 @@ const warningText = computed(
 
 .driver-card__last-trip__value--warning {
   color: var(--el-color-danger);
+  cursor: help;
 }
 </style>
 
 <style>
-/* Поппер телепортируется в body, поэтому стили не scoped */
 .driver-card__tooltip {
-  max-width: 280px;
-  white-space: normal;
+  background: var(--el-color-danger) !important;
+  color: #fff !important;
 }
 </style>

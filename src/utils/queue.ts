@@ -53,16 +53,23 @@ export function weekTopForCurrentWeek(
 }
 
 /**
- * Кто сегодня управляет поездом.
+ * Кто сегодня должен управлять поездом (назначение на текущий игровой день).
+ *
+ * Направление считается по поездкам, сделанным **до** текущего игрового дня:
+ * поездка сегодняшнего дня в журнале — это результат дня (кто реально ездил),
+ * а не вход в назначение. Фактический машинист дня берётся отдельно из записи
+ * журнала на текущий игровой день (UI: «Фактический машинист сегодня»).
  *
  * - **Чередование** сохраняется 1:1: фаза определяется из последней записи
- *   журнала — последний водитель R4/R5 → сегодня день R3; R3 → день R4/R5.
+ *   журнала (до сегодняшнего дня) — последний водитель R4/R5 → сегодня
+ *   день R3; R3 → день R4/R5.
  * - **День R4/R5**: следующий в списке R4/R5 после последнего R4/R5-водителя
  *   (циклически).
  * - **День R3**: поезд ведут топ-3 R3 за предыдущую игровую неделю
  *   (неделя начинается в понедельник 05:00 МСК), по порядку: 1-й R3-день
  *   недели → #1, 2-й → #2, 3-й → #3, 4-й и далее — по кругу (снова #1).
- *   Слот = количество R3-поездок в журнале за текущую игровую неделю.
+ *   Слот = количество R3-поездок до сегодняшнего дня за текущую игровую
+ *   неделю.
  *   Если назначенный на кулдауне (< 10 дней) — следующий доступный из тройки
  *   по порядку; если все на кулдауне — назначенный (мягкое предупреждение
  *   в UI). Если топ-3 за предыдущую неделю не найден — ближайшая
@@ -71,7 +78,8 @@ export function weekTopForCurrentWeek(
  * - **Последний R4/R5-водитель отсутствует в списке** → очередь стартует с головы.
  *
  * Кулдаун не блокирует водителя: это мягкое предупреждение в UI,
- * кроме выбора следующего доступного из тройки R3.
+ * кроме выбора следующего доступного из тройки R3. Проверка кулдауна
+ * учитывает все поездки, включая сегодняшний день.
  */
 export function computeCurrentDriver(
   trips: TripRecord[],
@@ -79,10 +87,13 @@ export function computeCurrentDriver(
   r3WeeklyTop: R3WeeklyTop,
   nowMs: number = Date.now(),
 ): Officer | null {
-  const sorted = [...trips].sort((a, b) => b.date.localeCompare(a.date))
+  // Направление на сегодня — без поездок текущего игрового дня
+  const today = currentGameDay(nowMs)
+  const pastTrips = today === null ? trips : trips.filter((trip) => trip.date < today)
+  const sorted = [...pastTrips].sort((a, b) => b.date.localeCompare(a.date))
   const last = sorted[0]
   if (last !== undefined && isR4R5Trip(last)) {
-    return r3DriverForToday(sorted, r3WeeklyTop, nowMs)
+    return r3DriverForToday(sorted, trips, r3WeeklyTop, nowMs)
   }
 
   const lastR4R5 = sorted.find(isR4R5Trip)
@@ -97,7 +108,12 @@ export function computeCurrentDriver(
 }
 
 /** Водитель R3 на сегодня: слот из тройки за предыдущую игровую неделю */
-function r3DriverForToday(sortedTrips: TripRecord[], r3WeeklyTop: R3WeeklyTop, nowMs: number): Officer | null {
+function r3DriverForToday(
+  sortedPastTrips: TripRecord[],
+  allTrips: TripRecord[],
+  r3WeeklyTop: R3WeeklyTop,
+  nowMs: number,
+): Officer | null {
   const weekTop = weekTopForCurrentWeek(r3WeeklyTop, nowMs)
   if (weekTop === null) {
     return null
@@ -108,17 +124,17 @@ function r3DriverForToday(sortedTrips: TripRecord[], r3WeeklyTop: R3WeeklyTop, n
     return null
   }
 
-  // Слот: число R3-поездок в журнале за текущую игровую неделю
+  // Слот: число R3-поездок до сегодняшнего дня за текущую игровую неделю
   let slot = 0
-  const today = currentGameDay(nowMs)
-  for (const trip of sortedTrips) {
-    if (trip.rank === 'R3' && trip.date >= weekMonday && trip.date <= today) {
+  for (const trip of sortedPastTrips) {
+    if (trip.rank === 'R3' && trip.date >= weekMonday) {
       slot++
     }
   }
 
+  // Кулдаун проверяется по всем поездкам, включая сегодняшний день
   const onCooldown = (name: string): boolean => {
-    const lastTrip = sortedTrips.find((trip) => trip.name === name)
+    const lastTrip = allTrips.find((trip) => trip.name === name)
     return lastTrip !== undefined && gameDaysAgo(lastTrip.date, nowMs) < MIN_DAYS_R3
   }
 

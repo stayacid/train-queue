@@ -53,6 +53,8 @@ async function onRefresh() {
 }
 
 const username = computed(() => store.currentDriver?.name ?? null)
+/** Фактический машинист сегодняшнего дня (запись журнала на текущий игровой день) */
+const actualDriver = computed(() => store.todayTrip?.name ?? null)
 const lastTripDaysAgo = computed(() => store.lastTripDaysAgo)
 
 /** Порог кулдауна для ранга текущего водителя (R3 — 10, R4/R5 — 14) */
@@ -97,8 +99,9 @@ const weekTopRows = computed<WeekTopRow[]>(() =>
       <el-skeleton v-if="!dataReady" :rows="3" animated />
       <template v-else>
         <CurrentDriverCard
-          v-if="username !== null"
+          v-if="username !== null || actualDriver !== null"
           :username="username"
+          :actual-driver="actualDriver"
           :last-trip-days-ago="lastTripDaysAgo"
           :cooldown-days="driverCooldownDays"
         />

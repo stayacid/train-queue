@@ -3,7 +3,7 @@ import { defineStore } from 'pinia'
 
 import type { Officer, R3WeeklyTop, TripRecord } from '@/types/train'
 import { computeCurrentDriver } from '@/utils/queue'
-import { gameDaysAgo } from '@/utils/gameDay'
+import { currentGameDay, gameDaysAgo } from '@/utils/gameDay'
 
 export const useTrainQueueStore = defineStore('trainQueue', () => {
   /** Журнал поездок */
@@ -16,10 +16,19 @@ export const useTrainQueueStore = defineStore('trainQueue', () => {
   /** Журнал в порядке убывания даты */
   const sortedTrips = computed(() => [...trips.value].sort((a, b) => b.date.localeCompare(a.date)))
 
-  /** Чья очередь сегодня (расчёт по журналу на вчерашний день) */
+  /** Чья очередь сегодня (назначение считается по поездкам до текущего игрового дня) */
   const currentDriver = computed<Officer | null>(() =>
     computeCurrentDriver(trips.value, r4r5Roster.value, r3WeeklyTop.value),
   )
+
+  /** Поездка текущего игрового дня (фактический машинист); null — записи нет */
+  const todayTrip = computed<TripRecord | null>(() => {
+    const today = currentGameDay()
+    if (today === null) {
+      return null
+    }
+    return sortedTrips.value.find((trip) => trip.date === today) ?? null
+  })
 
   /** Дней с последней поездки текущего водителя; null — записей нет */
   const lastTripDaysAgo = computed<number | null>(() => {
@@ -51,6 +60,7 @@ export const useTrainQueueStore = defineStore('trainQueue', () => {
     r3WeeklyTop,
     sortedTrips,
     currentDriver,
+    todayTrip,
     lastTripDaysAgo,
     lastTripOf,
     load,
