@@ -1,48 +1,53 @@
-# train-queue
+# Очередь на поезд (train-queue)
 
-This template should help get you started developing with Vue 3 in Vite.
+Одностраничное приложение, определяющее, чья очередь управлять поездом в **Z Route Redemption**.
 
-## Recommended IDE Setup
+Живой сайт: https://stayacid.github.io/train-queue/
 
-[VS Code](https://code.visualstudio.com/) + [Vue (Official)](https://marketplace.visualstudio.com/items?itemName=Vue.volar) (and disable Vetur).
+## Правила
 
-## Recommended Browser Setup
+- Поезд запускается раз в день (игровой день начинается в 05:00 МСК).
+- Офицеры R4/R5 водят по простой очереди (по кругу, порядок — как во вкладке «Список R4/R5»).
+- Топ-3 R3 по VS за неделю управляют поездом на следующей неделе по порядку:
+  1-й R3-день недели ведёт #1, 2-й — #2, 3-й — #3, с 4-го дня — по кругу.
+- Кулдаун после управления: R4/R5 — 14 игровых дней, R3 — 10 игровых дней.
 
-- Chromium-based browsers (Chrome, Edge, Brave, etc.):
-  - [Vue.js devtools](https://chromewebstore.google.com/detail/vuejs-devtools/nhdogjmejiglipccpnnnanhbledajbpd)
-  - [Turn on Custom Object Formatter in Chrome DevTools](http://bit.ly/object-formatters)
-- Firefox:
-  - [Vue.js devtools](https://addons.mozilla.org/en-US/firefox/addon/vue-js-devtools/)
-  - [Turn on Custom Object Formatter in Firefox DevTools](https://fxdx.dev/firefox-devtools-custom-object-formatters/)
+## Данные
 
-## Type Support for `.vue` Imports in TS
+Источник — публичная таблица Google Sheets (только чтение), три вкладки:
 
-TypeScript cannot handle type information for `.vue` imports by default, so we replace the `tsc` CLI with `vue-tsc` for type checking. In editors, we need [Volar](https://marketplace.visualstudio.com/items?itemName=Vue.volar) to make the TypeScript language service aware of `.vue` types.
+| Вкладка | Колонки |
+|---|---|
+| Журнал | `Имя, Дата, Ранг` |
+| Список R4/R5 | `Никнейм, Ранг` (порядок строк = порядок очереди) |
+| Топ3 R3 | `Никнейм, Место, Неделя` (номер ISO-недели) |
 
-## Customize configuration
+Два канала обновления:
 
-See [Vite Configuration Reference](https://vite.dev/config/).
+- **Снапшот** — GitHub Actions (`sync.yml`) каждый день в 18:00 МСК скачивает вкладки
+  и коммитит `public/data.json` (страница по умолчанию показывает его).
+- **Кнопка «Обновить»** — браузер скачивает CSV прямо из таблицы (CORS у публичной
+  таблицы разрешён) и сохраняет снапшот в localStorage.
 
-## Project Setup
+## Стек
 
-```sh
-yarn
-```
+Vue 3 (`<script setup>`) + TypeScript + Vite + Element Plus (тёмная тема) + Pinia.
+Архитектура — Atomic Design; подробный план и правила разработки — в [`PLAN.md`](PLAN.md).
 
-### Compile and Hot-Reload for Development
+## Локальная разработка
 
-```sh
-yarn dev
-```
-
-### Type-Check, Compile and Minify for Production
-
-```sh
-yarn build
-```
-
-### Lint with [ESLint](https://eslint.org/)
+Требуется Node ≥ 22.22 (зависимость `chokidar`).
 
 ```sh
-yarn lint
+yarn                     # установка зависимостей
+yarn dev                 # dev-сервер
+yarn type-check          # проверка типов (vue-tsc)
+yarn lint                # ESLint + oxlint
+yarn build               # production-сборка
+node scripts/sanity-check.mjs  # проверка алгоритма очереди
 ```
+
+## Деплой
+
+`deploy.yml` — при пуше в `main` собирает приложение и деплоит на GitHub Pages
+через `actions/deploy-pages`.

@@ -24,7 +24,15 @@ export function csvUrl(tab: string, sheetId: string = SHEET_ID): string {
  * форму заголовков каждой вкладки и не даст молча распарсить чужие данные.
  */
 export async function fetchTabCsv(tab: string, sheetId: string = SHEET_ID): Promise<string> {
-  const response = await fetch(csvUrl(tab, sheetId))
+  let response: Response
+  try {
+    response = await fetch(csvUrl(tab, sheetId))
+  } catch {
+    throw new Error(
+      'Не удалось подключиться к Google Sheets — сеть или прокси блокирует docs.google.com. ' +
+        'Данные на странице не изменились; снапшот обновляется автоматически каждый день в 18:00 МСК.',
+    )
+  }
   if (!response.ok) {
     throw new Error(`Не удалось скачать вкладку «${tab}»: HTTP ${response.status}`)
   }
