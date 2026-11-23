@@ -18,10 +18,11 @@ export type OfficerWithLastTrip = Officer & {
   daysAgo: number | null
 }
 
-/** Строка таблицы «Лидеры R3 по VS»: игрок из вкладки «Топ3 R3» */
-export type WeekTopRow = {
-  name: string
-  rank: Rank
+/**
+ * Строка таблицы «Лидеры R3 по VS»: игрок из вкладки «Топ3 R3»
+ * + данные о последней поездке (из журнала).
+ */
+export type WeekTopRow = OfficerWithLastTrip & {
   /** Место в топ-3 недели (1–3) */
   position: number
   /** ISO-номер недели из колонки «Неделя» вкладки «Топ3 R3» */

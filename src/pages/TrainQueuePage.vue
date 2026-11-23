@@ -89,8 +89,7 @@ const weekTopRows = computed<WeekTopRow[]>(() => {
     }
     officers.forEach((officer, index) => {
       rows.push({
-        name: officer.name,
-        rank: officer.rank,
+        ...officerRow(officer),
         position: index + 1,
         weekNumber,
         isCurrentWeek: weekNumber === currentWeek,

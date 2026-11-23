@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import SectionTitle from '@/atoms/SectionTitle.vue'
+import LastTripCell from '@/molecules/LastTripCell.vue'
 import PagedTable from '@/molecules/PagedTable.vue'
 import type { TableColumn } from '@/types/table'
 import type { WeekTopRow } from '@/types/train'
+import { cooldownDaysFor } from '@/utils/cooldown'
 
 defineProps<{
   rows: WeekTopRow[]
@@ -12,6 +14,7 @@ const columns: TableColumn[] = [
   { prop: 'position', label: 'Место', width: 90 },
   { prop: 'name', label: 'Никнейм' },
   { prop: 'week', label: 'Неделя', width: 150 },
+  { prop: 'lastTripDate', label: 'Последняя поездка', width: 250 },
 ]
 </script>
 
@@ -34,6 +37,14 @@ const columns: TableColumn[] = [
             текущая
           </el-tag>
         </span>
+      </template>
+      <template #lastTripDate="{ row }">
+        <LastTripCell
+          v-if="row.lastTripDate !== undefined || row.daysAgo !== undefined"
+          :last-trip-date="row.lastTripDate ?? null"
+          :days-ago="row.daysAgo ?? null"
+          :cooldown-days="cooldownDaysFor(row.rank)"
+        />
       </template>
     </PagedTable>
     <el-empty
