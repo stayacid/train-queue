@@ -23,6 +23,11 @@ export function currentGameDay(nowMs: number = Date.now()): string {
   return moscowCalendarDay(nowMs - DAY_START_OFFSET_MS)
 }
 
+/** Текущая календарная дата (YYYY-MM-DD) в Europe/Moscow */
+export function currentCalendarDay(nowMs: number = Date.now()): string {
+  return moscowCalendarDay(nowMs)
+}
+
 function gameDayToUtcMs(gameDay: string): number | null {
   const [year, month, day] = gameDay.split('-').map(Number)
   if (!year || !month || !day) {

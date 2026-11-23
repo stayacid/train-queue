@@ -8,7 +8,9 @@ const jiti = createJiti(import.meta.url, {
 })
 
 const { computeCurrentDriver } = await jiti.import('../src/utils/queue.ts')
-const { currentGameDay, gameDaysAgo, gameWeekMonday } = await jiti.import('../src/utils/gameDay.ts')
+const { currentGameDay, currentCalendarDay, gameDaysAgo, gameWeekMonday } =
+  await jiti.import('../src/utils/gameDay.ts')
+const { isoWeekNumber, isoWeekMondayIso } = await jiti.import('../src/utils/sheets.ts')
 const { mockTrips, mockR4R5Officers, mockR3WeeklyTop } = await jiti.import('../src/data/mock.ts')
 
 // Фиксированная «текущая» дата: пятница 21.11.2026, 15:51 МСК
@@ -28,6 +30,25 @@ assert.equal(gameWeekMonday('2026-11-15'), '2026-11-09', 'воскресенье
 assert.equal(gameDaysAgo('2026-11-21', now), 0)
 assert.equal(gameDaysAgo('2026-11-20', now), 1)
 assert.equal(gameDaysAgo('2026-11-07', now), 14)
+
+// --- currentCalendarDay ---
+assert.equal(currentCalendarDay(now), '2026-11-21')
+assert.equal(
+  currentCalendarDay(Date.parse('2026-11-21T04:59:00+03:00')),
+  '2026-11-21',
+  'календарный день — без игрового сдвига',
+)
+
+// --- isoWeekNumber (ISO-номер недели даты) ---
+assert.equal(isoWeekNumber('2026-11-16'), 47, 'понедельник недели 47')
+assert.equal(isoWeekNumber('2026-11-09'), 46, 'понедельник недели 46')
+assert.equal(isoWeekNumber('2026-01-01'), 1, 'четверг — 1-я неделя')
+assert.equal(isoWeekNumber('2025-12-29'), 1, 'понедельник 1-й недели следующего года')
+assert.equal(isoWeekNumber('not-a-date'), null, 'невалидная дата → null')
+// Обратное преобразование: 2026 — 53 ISO-недели (год начинается в четверг)
+for (let week = 1; week <= 53; week++) {
+  assert.equal(isoWeekNumber(isoWeekMondayIso(week, 2026)), week, `round-trip недели ${week}`)
+}
 
 // --- День R4/R5: очередь по списку, указатель после последнего водителя ---
 // 11-21 (сб) — R3-день (последняя поездка 11-20 R3), 11-20 (пт) — R4/R5-день:
@@ -190,8 +211,20 @@ const { useTrainQueueStore } = await jiti.import('../src/stores/trainQueue.ts')
 setActivePinia(createPinia())
 const store = useTrainQueueStore()
 store.load(mockTrips, mockR4R5Officers, mockR3WeeklyTop)
-assert.equal(store.currentDriver?.name, 'Стальной')
-assert.equal(store.lastTripDaysAgo, gameDaysAgo('2026-11-13'), 'последняя поездка Стального — 11-13')
+// Стор использует реальный Date.now() — водитель зависит от текущей недели,
+// поэтому имя не хардкодим: сравниваем с чистой функцией на том же now.
+const expectedDriver = computeCurrentDriver(mockTrips, mockR4R5Officers, mockR3WeeklyTop)
+assert.deepEqual(store.currentDriver, expectedDriver, 'стор = чистая функция')
+if (expectedDriver === null) {
+  assert.equal(store.lastTripDaysAgo, null)
+} else {
+  const lastTrip = mockTrips.find((trip) => trip.name === expectedDriver.name)
+  assert.equal(
+    store.lastTripDaysAgo,
+    lastTrip === undefined ? null : gameDaysAgo(lastTrip.date),
+    'дней с последней поездки текущего водителя',
+  )
+}
 assert.equal(store.lastTripOf('Гром')?.date, '2026-11-19')
 assert.equal(store.r3WeeklyTop['2026-11-09']?.length, 3)
 

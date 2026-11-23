@@ -225,6 +225,22 @@ export function weekNumberToMondayIso(week: number, nowMs: number = Date.now()):
   return monday
 }
 
+/**
+ * Номер ISO-недели указанной даты (ISO-дата) — обратная функция
+ * `isoWeekMondayIso`: неделю определяет четверг этой недели.
+ * null для невалидной даты.
+ */
+export function isoWeekNumber(dateIso: string): number | null {
+  const ms = Date.parse(dateIso + 'T12:00:00Z')
+  if (Number.isNaN(ms)) {
+    return null
+  }
+  const dayOfWeek = (new Date(ms).getUTCDay() + 6) % 7 // 0 — понедельник … 6 — воскресенье
+  const thursday = new Date(ms + (3 - dayOfWeek) * MS_PER_DAY)
+  const yearStart = Date.UTC(thursday.getUTCFullYear(), 0, 1)
+  return Math.ceil(((thursday.getTime() - yearStart) / MS_PER_DAY + 1) / 7)
+}
+
 // ---------------------------------------------------------------------------
 // Разбор вкладок
 // ---------------------------------------------------------------------------

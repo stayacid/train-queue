@@ -12,8 +12,8 @@ import { loadInitialData, refreshFromSheets, type DataSource } from '@/data/load
 import { useTrainQueueStore } from '@/stores/trainQueue'
 import type { Officer, OfficerWithLastTrip, WeekTopRow } from '@/types/train'
 import { cooldownDaysFor } from '@/utils/cooldown'
-import { gameDaysAgo } from '@/utils/gameDay'
-import { weekTopForCurrentWeek } from '@/utils/queue'
+import { currentCalendarDay, gameDaysAgo } from '@/utils/gameDay'
+import { isoWeekNumber } from '@/utils/sheets'
 
 const store = useTrainQueueStore()
 
@@ -75,14 +75,31 @@ function officerRow(officer: Officer): OfficerWithLastTrip {
 
 const r4r5Rows = computed<OfficerWithLastTrip[]>(() => store.r4r5Roster.map(officerRow))
 
-/** Тройка R3, управляющая поездом на этой неделе (из топ-3 за прошлую неделю) */
-const weekTop = computed(() => weekTopForCurrentWeek(store.r3WeeklyTop))
-const weekTopRows = computed<WeekTopRow[]>(() =>
-  (weekTop.value?.officers ?? []).map((officer, index) => ({
-    ...officerRow(officer),
-    position: index + 1,
-  })),
-)
+/**
+ * Все строки вкладки «Топ3 R3» для таблицы «Лидеры R3 по VS»:
+ * неделя по убыванию, внутри недели — по месту.
+ */
+const weekTopRows = computed<WeekTopRow[]>(() => {
+  const currentWeek = isoWeekNumber(currentCalendarDay())
+  const rows: WeekTopRow[] = []
+  for (const [weekMonday, officers] of Object.entries(store.r3WeeklyTop)) {
+    const weekNumber = isoWeekNumber(weekMonday)
+    if (weekNumber === null) {
+      continue
+    }
+    officers.forEach((officer, index) => {
+      rows.push({
+        name: officer.name,
+        rank: officer.rank,
+        position: index + 1,
+        weekNumber,
+        isCurrentWeek: weekNumber === currentWeek,
+      })
+    })
+  }
+  rows.sort((a, b) => b.weekNumber - a.weekNumber || a.position - b.position)
+  return rows
+})
 </script>
 
 <template>
@@ -121,7 +138,7 @@ const weekTopRows = computed<WeekTopRow[]>(() =>
       />
       <TripJournalTable :trips="store.trips" />
       <R4R5ListTable :rows="r4r5Rows" />
-      <WeekTopR3Table :rows="weekTopRows" :week-monday="weekTop?.weekMonday ?? null" />
+      <WeekTopR3Table :rows="weekTopRows" />
     </template>
   </TrainQueueTemplate>
 </template>

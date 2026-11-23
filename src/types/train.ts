@@ -18,9 +18,16 @@ export type OfficerWithLastTrip = Officer & {
   daysAgo: number | null
 }
 
-/** Строка таблицы «Тройка R3 на эту неделю»: позиция в тройке (1–3) */
-export type WeekTopRow = OfficerWithLastTrip & {
+/** Строка таблицы «Лидеры R3 по VS»: игрок из вкладки «Топ3 R3» */
+export type WeekTopRow = {
+  name: string
+  rank: Rank
+  /** Место в топ-3 недели (1–3) */
   position: number
+  /** ISO-номер недели из колонки «Неделя» вкладки «Топ3 R3» */
+  weekNumber: number
+  /** Неделя строки — текущая календарная неделя */
+  isCurrentWeek: boolean
 }
 
 /**
