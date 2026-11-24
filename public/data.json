@@ -1,6 +1,11 @@
 {
   "journal": [
     {
+      "name": "juzeppo",
+      "date": "2026-11-23",
+      "rank": "R3"
+    },
+    {
       "name": "Мияги",
       "date": "2026-11-22",
       "rank": "R4"
@@ -123,7 +128,21 @@
         "name": "BuenoMalo",
         "rank": "R3"
       }
+    ],
+    "2026-11-09": [
+      {
+        "name": "Nick07",
+        "rank": "R3"
+      },
+      {
+        "name": "Nat22",
+        "rank": "R3"
+      },
+      {
+        "name": "Aksa5",
+        "rank": "R3"
+      }
     ]
   },
-  "fetchedAt": "2026-11-22T20:56:13.707Z"
+  "fetchedAt": "2026-11-24T02:00:21.046Z"
 }
