@@ -1,4 +1,3 @@
-import { MIN_DAYS_R3 } from '@/constants'
 import type { Officer, R3WeeklyTop, TripRecord } from '@/types/train'
 import { addGameDays, currentGameDay, currentGameWeekMonday, gameDaysAgo } from '@/utils/gameDay'
 
@@ -53,6 +52,39 @@ export function weekTopForCurrentWeek(
 }
 
 /**
+ * Дней с последней поездки игрока (все поездки, любой ранг);
+ * null, если игрок ни разу не ездил.
+ */
+function lastTripDaysAgo(name: string, allTrips: TripRecord[], nowMs: number): number | null {
+  const lastTrip = allTrips.find((trip) => trip.name === name)
+  return lastTrip === undefined ? null : gameDaysAgo(lastTrip.date, nowMs)
+}
+
+/**
+ * Тот, кто дольше всех без поездки: никогда не ездивший — в приоритете,
+ * затем — тот, чья последняя поездка дальше в прошлом; при равенстве —
+ * по порядку в списке. Учитываются ВСЕ поездки игрока (R3, R4, R5),
+ * включая сегодняшний день.
+ */
+function pickLongestWait(
+  officers: Officer[],
+  allTrips: TripRecord[],
+  nowMs: number,
+): Officer | null {
+  let best: Officer | null = null
+  let bestDays = -1
+  for (const officer of officers) {
+    const daysAgo = lastTripDaysAgo(officer.name, allTrips, nowMs)
+    const wait = daysAgo === null ? Number.POSITIVE_INFINITY : daysAgo
+    if (wait > bestDays) {
+      best = officer
+      bestDays = wait
+    }
+  }
+  return best
+}
+
+/**
  * Кто сегодня должен управлять поездом (назначение на текущий игровой день).
  *
  * Направление считается по поездкам, сделанным **до** текущего игрового дня:
@@ -63,23 +95,18 @@ export function weekTopForCurrentWeek(
  * - **Чередование** сохраняется 1:1: фаза определяется из последней записи
  *   журнала (до сегодняшнего дня) — последний водитель R4/R5 → сегодня
  *   день R3; R3 → день R4/R5.
- * - **День R4/R5**: следующий в списке R4/R5 после последнего R4/R5-водителя
- *   (циклически).
- * - **День R3**: поезд ведут топ-3 R3 за предыдущую игровую неделю
- *   (неделя начинается в понедельник 05:00 МСК), по порядку: 1-й R3-день
- *   недели → #1, 2-й → #2, 3-й → #3, 4-й и далее — по кругу (снова #1).
- *   Слот = количество R3-поездок до сегодняшнего дня за текущую игровую
- *   неделю.
- *   Если назначенный на кулдауне (< 10 дней) — следующий доступный из тройки
- *   по порядку; если все на кулдауне — назначенный (мягкое предупреждение
- *   в UI). Если топ-3 за предыдущую неделю не найден — ближайшая
- *   предыдущая неделя; если и её нет — водитель не определяется (null).
- * - **Пустой журнал** → старт цикла: день R4/R5, голова списка.
- * - **Последний R4/R5-водитель отсутствует в списке** → очередь стартует с головы.
+ * - **День R4/R5**: из списка R4/R5 — тот, кто дольше всех без поездки
+ *   (никогда не ездивший — в приоритете; при равенстве — по порядку в списке).
+ * - **День R3**: из топ-3 R3 за предыдущую игровую неделю (неделя начинается
+ *   в понедельник 05:00 МСК) — тот, кто дольше всех без поездки (при равенстве
+ *   — по порядку в тройке). Если выбранный на кулдауне (< 10 дней) — мягкое
+ *   предупреждение в UI, не блокировка. Если топ-3 за предыдущую неделю не
+ *   найден — ближайшая предыдущая неделя; если и её нет — водитель не
+ *   определяется (null).
+ * - **Пустой журнал** → старт цикла: день R4/R5, голова списка (никто не ездил).
  *
- * Кулдаун не блокирует водителя: это мягкое предупреждение в UI,
- * кроме выбора следующего доступного из тройки R3. Проверка кулдауна
- * учитывает все поездки, включая сегодняшний день.
+ * Кулдаун не блокирует водителя: это мягкое предупреждение в UI.
+ * Подсчёт ожидания учитывает все поездки игрока, включая сегодняшний день.
  */
 export function computeCurrentDriver(
   trips: TripRecord[],
@@ -93,23 +120,13 @@ export function computeCurrentDriver(
   const sorted = [...pastTrips].sort((a, b) => b.date.localeCompare(a.date))
   const last = sorted[0]
   if (last !== undefined && isR4R5Trip(last)) {
-    return r3DriverForToday(sorted, trips, r3WeeklyTop, nowMs)
+    return r3DriverForToday(trips, r3WeeklyTop, nowMs)
   }
-
-  const lastR4R5 = sorted.find(isR4R5Trip)
-  if (lastR4R5 === undefined) {
-    return r4r5Roster[0] ?? null
-  }
-  const index = r4r5Roster.findIndex((officer) => officer.name === lastR4R5.name)
-  if (index === -1) {
-    return r4r5Roster[0] ?? null
-  }
-  return r4r5Roster[(index + 1) % r4r5Roster.length] ?? null
+  return pickLongestWait(r4r5Roster, trips, nowMs)
 }
 
-/** Водитель R3 на сегодня: слот из тройки за предыдущую игровую неделю */
+/** Водитель R3 на сегодня: из тройки за предыдущую игровую неделю — тот, кто дольше всех без поездки */
 function r3DriverForToday(
-  sortedPastTrips: TripRecord[],
   allTrips: TripRecord[],
   r3WeeklyTop: R3WeeklyTop,
   nowMs: number,
@@ -118,33 +135,5 @@ function r3DriverForToday(
   if (weekTop === null) {
     return null
   }
-  const top3 = weekTop.officers
-  const weekMonday = currentGameWeekMonday(nowMs)
-  if (weekMonday === null) {
-    return null
-  }
-
-  // Слот: число R3-поездок до сегодняшнего дня за текущую игровую неделю
-  let slot = 0
-  for (const trip of sortedPastTrips) {
-    if (trip.rank === 'R3' && trip.date >= weekMonday) {
-      slot++
-    }
-  }
-
-  // Кулдаун проверяется по всем поездкам, включая сегодняшний день
-  const onCooldown = (name: string): boolean => {
-    const lastTrip = allTrips.find((trip) => trip.name === name)
-    return lastTrip !== undefined && gameDaysAgo(lastTrip.date, nowMs) < MIN_DAYS_R3
-  }
-
-  const count = top3.length
-  for (let k = 0; k < count; k++) {
-    const candidate = top3[(slot + k) % count]
-    if (candidate !== undefined && !onCooldown(candidate.name)) {
-      return candidate
-    }
-  }
-  // Все на кулдауне — назначенный, UI покажет мягкое предупреждение
-  return top3[slot % count] ?? null
+  return pickLongestWait(weekTop.officers, allTrips, nowMs)
 }
