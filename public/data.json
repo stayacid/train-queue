@@ -1,6 +1,11 @@
 {
   "journal": [
     {
+      "name": "Nick07",
+      "date": "2026-11-25",
+      "rank": "R3"
+    },
+    {
       "name": "golovaUshko",
       "date": "2026-11-24",
       "rank": "R4"
@@ -149,5 +154,5 @@
       }
     ]
   },
-  "fetchedAt": "2026-11-24T23:46:18.166Z"
+  "fetchedAt": "2026-11-25T23:28:39.323Z"
 }
