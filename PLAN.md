@@ -37,7 +37,6 @@
 | Тема | Тёмная | ✅ `class="dark"` на `<html>` + `theme-chalk/dark/css-vars.css` |
 | Шрифт | Системный sans-serif | ✅ `system-ui, -apple-system, 'Segoe UI', …` (без внешней загрузки) |
 | Состояние | Pinia | ✅ в проекте (для этапа 2) |
-| Роутинг | vue-router | ✅ в проекте (страница одна — `/`) |
 
 ## Архитектура: Atomic Design
 
@@ -161,7 +160,7 @@ src/
 - [x] 6. Молекулы: `PagedTable.vue`, `HelpButton.vue`, `CurrentDriverCard.vue`.
 - [x] 7. Организмы: `TrainQueueHeader.vue`, `TripJournalTable.vue`, `R4R5ListTable.vue`, `WeekTopR3Table.vue`.
 - [x] 8. Шаблон: `TrainQueueTemplate.vue` (слоты: header / driver / tables).
-- [x] 9. Страница: `TrainQueuePage.vue` (шаблон + моки), повесить её в `App.vue` (роут `/`).
+- [x] 9. Страница: `TrainQueuePage.vue` (шаблон + моки), повесить её в `App.vue` (корневой компонент).
 - [x] 10. Проверить: `yarn type-check`, `yarn lint`, `yarn build`, визуальный прогон `yarn dev`.
 
 ### 1.5. Критерии приёмки (этап 1)

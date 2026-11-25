@@ -1,5 +1,7 @@
-<script setup lang="ts"></script>
+<script setup lang="ts">
+import TrainQueuePage from '@/pages/TrainQueuePage.vue'
+</script>
 
 <template>
-  <router-view />
+  <TrainQueuePage />
 </template>
