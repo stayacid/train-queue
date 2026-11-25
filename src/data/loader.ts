@@ -4,7 +4,7 @@ import type { Officer, R3WeeklyTop, TripRecord } from '@/types/train'
 import { fetchTabCsv, parseSheets, TAB_JOURNAL, TAB_ROSTER, TAB_TOP3 } from '@/utils/sheets'
 
 /**
- * Снимок данных таблицы (форма public/data.json и кеша в localStorage).
+ * Снимок данных таблицы (форма public/data.json).
  * fetchedAt — ISO-время UTC, когда данные были получены из таблицы.
  */
 export interface Snapshot {
@@ -14,15 +14,13 @@ export interface Snapshot {
   weeklyTop: R3WeeklyTop
 }
 
-/** Откуда взяты данные: файл-снимок / кеш браузера / таблица напрямую / мок */
-export type DataSource = 'file' | 'cache' | 'live' | 'mock'
+/** Откуда взяты данные: файл-снимок / таблица напрямую / мок */
+export type DataSource = 'file' | 'live' | 'mock'
 
 export interface LoadedData {
   source: DataSource
   fetchedAt: string | null
 }
-
-const STORAGE_KEY = 'train-queue:snapshot'
 
 const RANKS: readonly string[] = ['R3', 'R4', 'R5']
 
@@ -95,50 +93,32 @@ export async function fetchSnapshotFile(): Promise<Snapshot> {
   return parseSnapshot(await response.json())
 }
 
-/** Снапшот из localStorage (результат последней кнопки «Обновить»); null, если нет */
-export function readCachedSnapshot(): Snapshot | null {
-  if (typeof localStorage === 'undefined') {
-    return null
-  }
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY)
-    return raw === null ? null : parseSnapshot(JSON.parse(raw))
-  } catch {
-    return null
-  }
-}
-
-export function saveCachedSnapshot(snapshot: Snapshot): void {
+/** Убрать устаревший кеш из старых версий (локальное хранилище больше не используется) */
+function cleanupLegacyCache(): void {
   if (typeof localStorage === 'undefined') {
     return
   }
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(snapshot))
+    localStorage.removeItem('train-queue:snapshot')
   } catch {
-    // Кеш недоступен (приватный режим, переполнение) — не критично
+    // Кеш недоступен — не критично
   }
 }
 
 /**
- * Начальная загрузка страницы: снапшот из public/data.json, если его нет —
- * кеш браузера, если и его нет — мок. Из двух снапшотов берётся свежий
- * (по fetchedAt; при равенстве — файл).
+ * Начальная загрузка страницы: снапшот из public/data.json, если его нет — мок.
  */
 export async function loadInitialData(store: TrainQueueStore): Promise<LoadedData> {
+  cleanupLegacyCache()
   let fromFile: Snapshot | null = null
   try {
     fromFile = await fetchSnapshotFile()
   } catch {
     fromFile = null
   }
-  const fromCache = readCachedSnapshot()
-  if (fromFile !== null && (fromCache === null || fromFile.fetchedAt >= fromCache.fetchedAt)) {
+  if (fromFile !== null) {
     store.load(fromFile.journal, fromFile.r4r5, fromFile.weeklyTop)
     return { source: 'file', fetchedAt: fromFile.fetchedAt }
-  }
-  if (fromCache !== null) {
-    store.load(fromCache.journal, fromCache.r4r5, fromCache.weeklyTop)
-    return { source: 'cache', fetchedAt: fromCache.fetchedAt }
   }
   store.load(mockTrips, mockR4R5Officers, mockR3WeeklyTop)
   return { source: 'mock', fetchedAt: null }
@@ -146,8 +126,8 @@ export async function loadInitialData(store: TrainQueueStore): Promise<LoadedDat
 
 /**
  * Кнопка «Обновить»: скачать три вкладки прямо из Google Sheets
- * (у публичной таблицы CORS разрешён), пересчитать данные, сохранить
- * в кеш браузера. При ошибке бросает Error — текущие данные не трогаем.
+ * (у публичной таблицы CORS разрешён) и пересчитать данные.
+ * При ошибке бросает Error — текущие данные не трогаем.
  */
 export async function refreshFromSheets(
   store: TrainQueueStore,
@@ -164,7 +144,6 @@ export async function refreshFromSheets(
     r4r5: parsed.roster,
     weeklyTop: parsed.weeklyTop,
   }
-  saveCachedSnapshot(snapshot)
   store.load(snapshot.journal, snapshot.r4r5, snapshot.weeklyTop)
   return { snapshot, warnings: parsed.warnings }
 }

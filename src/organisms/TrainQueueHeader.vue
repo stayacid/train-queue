@@ -19,7 +19,6 @@ defineEmits<{ refresh: [] }>()
 
 const SOURCE_LABELS: Record<DataSource, string> = {
   file: 'данные из таблицы Google Sheets',
-  cache: 'данные из таблицы Google Sheets (кеш браузера)',
   live: 'данные из таблицы Google Sheets',
   mock: 'демо-данные',
 }
