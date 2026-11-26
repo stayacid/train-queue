@@ -188,8 +188,9 @@ const r3AllCooldown = [
 driver = computeCurrentDriver(r3AllCooldown, mockR4R5Officers, mockR3WeeklyTop, Date.parse('2026-11-25T12:00:00+03:00'))
 assert.equal(driver?.name, 'Рай', 'все на кулдауне → дольше всех без поездки (предупреждение в UI)')
 
-// Поездка сегодняшнего дня входит в ожидание:
-// Циклон ездил сегодня (0 дней), Гром — 6 дней → Гром
+// Поездка сегодняшнего дня НЕ влияет на назначение:
+// Циклон ездил сегодня — старое назначение не меняется,
+// он считается «никогда не ездившим» (∞) → выигрывает
 const top3Pair = {
   '2026-11-16': [
     { name: 'Гром', rank: 'R3' },
@@ -202,7 +203,26 @@ const r3TodayWait = [
   { name: 'Гром', date: '2026-11-19', rank: 'R3' },
 ]
 driver = computeCurrentDriver(r3TodayWait, mockR4R5Officers, top3Pair, Date.parse('2026-11-25T12:00:00+03:00'))
-assert.equal(driver?.name, 'Гром', 'поездка сегодняшнего дня входит в ожидание')
+assert.equal(driver?.name, 'Циклон', 'поездка сегодняшнего дня не влияет на назначение')
+
+// Отчёт пользователя: назначен Nick07, он ездил сегодня — назначение не меняется
+// (тройка — juzeppo/Nick07/BuenoMalo; в прошлом — juzeppo 2 дня, Nick07 10, BuenoMalo 8)
+const scenarioTrips = [
+  { name: 'Nick07', date: '2026-11-25', rank: 'R3' },
+  { name: 'golovaUshko', date: '2026-11-24', rank: 'R4' },
+  { name: 'juzeppo', date: '2026-11-23', rank: 'R3' },
+  { name: 'BuenoMalo', date: '2026-11-17', rank: 'R3' },
+  { name: 'Nick07', date: '2026-11-15', rank: 'R3' },
+]
+const scenarioTop3 = {
+  '2026-11-16': [
+    { name: 'juzeppo', rank: 'R3' },
+    { name: 'Nick07', rank: 'R3' },
+    { name: 'BuenoMalo', rank: 'R3' },
+  ],
+}
+driver = computeCurrentDriver(scenarioTrips, mockR4R5Officers, scenarioTop3, Date.parse('2026-11-25T12:00:00+03:00'))
+assert.equal(driver?.name, 'Nick07', 'поездка сегодняшнего дня не меняет назначение (Nick07)')
 
 // Нет записи за прошлую неделю → ближайшая предыдущая
 const top3Sparse = {
@@ -250,20 +270,23 @@ assert.deepEqual(store.currentDriver, expectedDriver, 'стор = чистая �
 if (expectedDriver === null) {
   assert.equal(store.lastTripDaysAgo, null)
 } else {
-  const lastTrip = mockTrips.find((trip) => trip.name === expectedDriver.name)
+  const realToday = currentGameDay()
+  const lastTrip = mockTrips.find(
+    (trip) => trip.name === expectedDriver.name && trip.date < realToday,
+  )
   assert.equal(
     store.lastTripDaysAgo,
     lastTrip === undefined ? null : gameDaysAgo(lastTrip.date),
-    'дней с последней поездки текущего водителя',
+    'дней с последней поездки текущего водителя (до сегодняшнего дня)',
   )
 }
 assert.equal(store.lastTripOf('Гром')?.date, '2026-11-19')
 assert.equal(store.r3WeeklyTop['2026-11-09']?.length, 3)
 
 // todayTrip — запись журнала на текущий игровой день
-const realToday = currentGameDay()
+const todayKey = currentGameDay()
 store.load(
-  [{ name: 'Мираж', date: realToday, rank: 'R4' }, ...mockTrips],
+  [{ name: 'Мираж', date: todayKey, rank: 'R4' }, ...mockTrips],
   mockR4R5Officers,
   mockR3WeeklyTop,
 )

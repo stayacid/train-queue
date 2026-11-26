@@ -30,13 +30,16 @@ export const useTrainQueueStore = defineStore('trainQueue', () => {
     return sortedTrips.value.find((trip) => trip.date === today) ?? null
   })
 
-  /** Дней с последней поездки текущего водителя; null — записей нет */
+  /** Дней с последней поездки текущего водителя (до сегодняшнего дня); null — записей нет */
   const lastTripDaysAgo = computed<number | null>(() => {
     const driver = currentDriver.value
     if (driver === null) {
       return null
     }
-    const last = sortedTrips.value.find((trip) => trip.name === driver.name)
+    const today = currentGameDay()
+    const last = sortedTrips.value.find(
+      (trip) => trip.name === driver.name && trip.date < today,
+    )
     if (last === undefined) {
       return null
     }

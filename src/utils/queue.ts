@@ -106,7 +106,8 @@ function pickLongestWait(
  * - **Пустой журнал** → старт цикла: день R4/R5, голова списка (никто не ездил).
  *
  * Кулдаун не блокирует водителя: это мягкое предупреждение в UI.
- * Подсчёт ожидания учитывает все поездки игрока, включая сегодняшний день.
+ * Подсчёт ожидания и фаза учитывают только поездки до сегодняшнего дня —
+ * поездка сегодняшнего дня в журнале не влияет на назначение.
  */
 export function computeCurrentDriver(
   trips: TripRecord[],
@@ -114,15 +115,16 @@ export function computeCurrentDriver(
   r3WeeklyTop: R3WeeklyTop,
   nowMs: number = Date.now(),
 ): Officer | null {
-  // Направление на сегодня — без поездок текущего игрового дня
+  // Направление и подсчёт ожидания — только по поездкам до сегодняшнего дня:
+  // поездка сегодняшнего дня — это результат дня, а не вход в назначение
   const today = currentGameDay(nowMs)
   const pastTrips = today === null ? trips : trips.filter((trip) => trip.date < today)
   const sorted = [...pastTrips].sort((a, b) => b.date.localeCompare(a.date))
   const last = sorted[0]
   if (last !== undefined && isR4R5Trip(last)) {
-    return r3DriverForToday(trips, r3WeeklyTop, nowMs)
+    return r3DriverForToday(pastTrips, r3WeeklyTop, nowMs)
   }
-  return pickLongestWait(r4r5Roster, trips, nowMs)
+  return pickLongestWait(r4r5Roster, pastTrips, nowMs)
 }
 
 /** Водитель R3 на сегодня: из тройки за предыдущую игровую неделю — тот, кто дольше всех без поездки */
