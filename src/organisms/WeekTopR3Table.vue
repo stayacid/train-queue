@@ -12,7 +12,7 @@ defineProps<{
 
 const columns: TableColumn[] = [
   { prop: 'position', label: 'Место', width: 90 },
-  { prop: 'name', label: 'Никнейм' },
+  { prop: 'name', label: 'Имя' },
   { prop: 'week', label: 'Неделя', width: 150 },
   { prop: 'lastTripDate', label: 'Последняя поездка', width: 250 },
 ]
