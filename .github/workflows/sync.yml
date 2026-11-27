@@ -16,6 +16,8 @@ concurrency:
 jobs:
   sync:
     runs-on: ubuntu-latest
+    outputs:
+      changed: ${{ steps.commit.outputs.changed }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -25,9 +27,11 @@ jobs:
       # При ошибке разбора скрипт завершается с кодом 1 и коммита не будет
       - run: node scripts/sync-sheets.mjs
       - name: Коммит data.json, если изменилось
+        id: commit
         run: |
           if [ -z "$(git status --porcelain public/data.json)" ]; then
             echo "data.json не изменился, коммит не нужен"
+            echo "changed=false" >> "$GITHUB_OUTPUT"
             exit 0
           fi
           git config user.name "github-actions[bot]"
@@ -35,3 +39,14 @@ jobs:
           git add public/data.json
           git commit -m "chore(data): обновить data.json из Google Sheets"
           git push
+          echo "changed=true" >> "$GITHUB_OUTPUT"
+  # Деплой сразу после синхронизации: push через GITHUB_TOKEN не запускает
+  # push-триггер deploy.yml, поэтому синхронизация вызывает его напрямую
+  deploy:
+    needs: sync
+    if: needs.sync.outputs.changed == 'true'
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    uses: ./.github/workflows/deploy.yml

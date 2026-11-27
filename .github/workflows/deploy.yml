@@ -3,6 +3,9 @@ name: Deploy to GitHub Pages
 on:
   push:
     branches: [main]
+  # Вызывается из sync.yml: коммиты самого GITHUB_TOKEN не запускают push-trigger,
+  # поэтому синхронизация деплоит напрямую
+  workflow_call:
   workflow_dispatch:
 
 permissions:

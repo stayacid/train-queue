@@ -258,7 +258,9 @@ src/
       (`Никнейм,Место,Неделя`; `Неделя` — ISO-номер недели, переводится в понедельник).
 - [x] Загрузка данных:
   - снапшот `public/data.json` — GitHub Actions cron (`0 15 * * *` UTC = 18:00 МСК),
-    `scripts/sync-sheets.mjs`, коммит только при изменении;
+    `scripts/sync-sheets.mjs`, коммит только при изменении, затем деплой (sync.yml
+    вызывает deploy.yml через `workflow_call` — push через `GITHUB_TOKEN` не запускает
+    push-триггер; ручной деплой — Actions → Deploy → Run workflow);
   - приложение: `data.json` (cache-buster) → моки (фолбэк);
   - кнопка «Обновить» в шапке — прямая скачка трёх вкладок из браузера (CORS у gviz
     работает).
